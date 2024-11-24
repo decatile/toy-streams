@@ -1,210 +1,270 @@
-# Stream Library README
+Here's a comprehensive `README.md` based on the framework you've provided. It covers the main API, class structure, and examples for commonly used functionality.
+
+---
+
+# Stream Framework
+
+This is a JavaScript framework for working with synchronous and asynchronous streams. It provides a unified API for iterating, transforming, filtering, and combining streams of data. The framework supports both synchronous and asynchronous iterables and iterators.
+
+## Table of Contents
+- [Overview](#overview)
+- [Stream Classes](#stream-classes)
+  - [SyncStream](#syncstream)
+  - [AsyncStream](#asyncstream)
+- [Static Methods](#static-methods)
+- [Instance Methods](#instance-methods)
+- [Examples](#examples)
+  - [Basic Usage](#basic-usage)
+  - [Mapping and Transforming](#mapping-and-transforming)
+  - [Flattening](#flattening)
+  - [Async Operations](#async-operations)
+  - [Batching](#batching)
+  - [Measuring](#measuring)
 
 ## Overview
 
-This library provides an abstraction for working with both synchronous and asynchronous streams. A stream represents a sequence of values that can be lazily evaluated. The library supports operations such as mapping, filtering, flat-mapping, reducing, and windowing over streams, along with the ability to handle both synchronous and asynchronous data sources seamlessly.
+The `Stream` framework defines a set of classes for working with sequences of data in both synchronous and asynchronous contexts. You can create streams from iterables or iterators, transform them, filter values, and combine multiple streams together.
 
-## Key Features
+Streams in this framework implement standard iteration protocols (`Symbol.iterator` for sync and `Symbol.asyncIterator` for async), making them compatible with most JavaScript iteration tools such as `for...of`, `Array.from()`, and `async/await`.
 
-- **Synchronous and Asynchronous Streams:** The library distinguishes between synchronous and asynchronous streams, enabling you to work with both types using the same API.
-- **Stream Composition:** You can compose streams using operations like `map`, `flatMap`, `filter`, `window`, `reduce`, etc., for both sync and async data.
-- **Transformation:** Supports mapping and flat-mapping of elements with synchronous and asynchronous functions.
-- **Measurement:** Tracks the time taken to process each element with `measuring`.
-- **Stream Expansion:** Allows merging multiple streams together with `extend`.
-- **Lazy Evaluation:** Elements are evaluated lazily, meaning values are produced only when needed.
-- **Flattening:** You can flatten nested streams, whether sync or async.
+### Key Concepts
+- **SyncStream**: A stream that processes data synchronously. It implements the `Iterable` and `Iterator` interfaces.
+- **AsyncStream**: A stream that processes data asynchronously. It implements the `AsyncIterable` and `AsyncIterator` interfaces.
 
-## Types of Streams
+---
 
-- **SyncStream**: A stream that operates synchronously.
-- **AsyncStream**: A stream that operates asynchronously.
-- **Stream**: Base class, with a `sync` flag determining if the stream is synchronous or asynchronous.
+## Stream Classes
 
-## Installation
+### SyncStream
 
-To install this library, use the following command:
+`SyncStream` is the base class for working with synchronous streams. It implements both `Iterable` and `Iterator`.
 
-```bash
-npm install toy-streams
+#### Common Methods for `SyncStream`:
+- `map(fn)`: Transforms each value in the stream.
+- `flatMap(fn)`: Flattens the stream by mapping each value to another iterable.
+- `filter(fn)`: Filters values in the stream based on a predicate function.
+- `window({ skip, take })`: Partitions the stream into windows of elements.
+- `forEach(fn)`: Iterates over the stream, executing the provided function for each element.
+- `reduce(fn, init)`: Reduces the stream to a single value.
+- `collect()`: Collects the stream into an array.
+- `batches(n)`: Groups the stream into batches of size `n`.
+
+### AsyncStream
+
+`AsyncStream` is the base class for asynchronous streams. It implements both `AsyncIterable` and `AsyncIterator`.
+
+#### Common Methods for `AsyncStream`:
+- `map(fn)`: Transforms each value in the stream asynchronously.
+- `flatMap(fn)`: Flattens the stream asynchronously by mapping each value to another iterable.
+- `filter(fn)`: Filters values asynchronously based on a predicate.
+- `window(skip, take)`: Partitions the stream asynchronously into windows of elements.
+- `forEach(fn)`: Iterates asynchronously over the stream.
+- `reduce(fn, init)`: Reduces the stream asynchronously to a single value.
+- `collect()`: Collects the stream into an array asynchronously.
+- `delayed(ms)`: Delays each value in the stream by `ms` milliseconds.
+
+---
+
+## Static Methods
+
+The `Stream` class provides several static methods to create streams from various sources.
+
+### `Stream.once(fn)`
+
+Creates a stream that emits a single value when invoked.
+
+```js
+const stream = Stream.once(() => 42);
+stream.forEach(value => console.log(value)); // 42
 ```
 
-## Basic Usage
+### `Stream.onceAsync(fn)`
 
-### Synchronous Streams
+Creates an asynchronous stream that emits a single value when resolved.
 
-Create a stream from an iterable:
-
-```typescript
-import Stream from 'toy-streams';
-
-// Create a synchronous stream from an array
-const stream = Stream.sync([1, 2, 3, 4, 5]);
-
-// Map operation: Multiply each value by 2
-const mappedStream = stream.map((x) => x * 2);
-
-// Collect the values into an array
-console.log(mappedStream.collect());  // [2, 4, 6, 8, 10]
+```js
+const stream = Stream.onceAsync(() => Promise.resolve(42));
+stream.forEach(value => console.log(value)); // 42
 ```
 
-### Asynchronous Streams
+### `Stream.moreAsync(fn)`
 
-Create a stream from an asynchronous iterable:
+Creates an asynchronous stream that fetches more data when required.
 
-```typescript
-import Stream from 'toy-streams';
-
-// Create an asynchronous stream from an async iterable
-const asyncStream = Stream.async({
-  async *[Symbol.asyncIterator]() {
-    yield 1;
-    yield 2;
-    yield 3;
-  }
-});
-
-// Map operation: Multiply each value by 2 asynchronously
-const asyncMappedStream = asyncStream.mapAsync((x) => Promise.resolve(x * 2));
-
-// Collect the values into an array asynchronously
-async function collectAsync() {
-  const result = await asyncMappedStream.collect();
-  console.log(result);  // [2, 4, 6]
-}
-
-collectAsync();
+```js
+const stream = Stream.moreAsync(() => Promise.resolve([1, 2, 3]));
+stream.forEach(value => console.log(value)); // 1, 2, 3
 ```
 
-### Combining Streams (Extend)
+### `Stream.sync(it)`
 
-You can combine multiple streams into one using `extend`.
+Creates a synchronous stream from an iterable or iterator.
 
-```typescript
-import Stream from 'toy-streams';
-
-const stream1 = Stream.sync([1, 2, 3]);
-const stream2 = Stream.sync([4, 5, 6]);
-
-// Extend stream1 with stream2
-const extendedStream = stream1.extend(stream2);
-
-console.log(extendedStream.collect());  // [1, 2, 3, 4, 5, 6]
-```
-
-### Iterating Over a Stream
-
-You can iterate over a stream using the `forEach` method.
-
-```typescript
-import Stream from 'toy-streams';
-
+```js
 const stream = Stream.sync([1, 2, 3]);
-
-// For each element, log the value
-stream.forEach((value) => {
-  console.log(value);  // 1, 2, 3
-});
+stream.forEach(value => console.log(value)); // 1, 2, 3
 ```
 
-### Windowing
+### `Stream.async(it)`
 
-Window is a combination of skip + take
+Creates an asynchronous stream from an async iterable or async iterator.
 
-```typescript
-import Stream from 'toy-streams';
+```js
+const stream = Stream.async((async function*() {
+  yield 1;
+  yield 2;
+  yield 3;
+})());
+stream.forEach(value => console.log(value)); // 1, 2, 3
+```
 
+### `Stream.gather(it)`
+
+Creates an asynchronous stream that waits for promises to resolve before emitting values.
+
+```js
+const stream = Stream.gather([Promise.resolve(1), Promise.resolve(2)]);
+stream.forEach(value => console.log(value)); // 1, 2
+```
+
+### `Stream.flatten(it)`
+
+Flattens nested streams into a single stream.
+
+```js
+const stream = Stream.flatten(
+  Stream.sync([Stream.sync([1, 2]), Stream.sync([3, 4])])
+);
+stream.forEach(value => console.log(value)); // 1, 2, 3, 4
+```
+
+### `Stream.iterate(fn, start)`
+
+Creates a stream by repeatedly invoking a function `fn` with a starting value.
+
+```js
+const stream = Stream.iterate(n => n * 2, 1);
+stream.take(5).forEach(value => console.log(value)); // 1, 2, 4, 8, 16
+```
+
+### `Stream.iterateAsync(fn, start)`
+
+Creates an asynchronous stream by repeatedly invoking an async function `fn`.
+
+```js
+const stream = Stream.iterateAsync(n => Promise.resolve(n * 2), 1);
+stream.take(5).forEach(value => console.log(value)); // 1, 2, 4, 8, 16
+```
+
+---
+
+## Instance Methods
+
+These methods are available on both `SyncStream` and `AsyncStream` classes.
+
+### `map(fn)`
+
+Applies a transformation to each value in the stream.
+
+```js
+const stream = Stream.sync([1, 2, 3]);
+stream.map(x => x * 2).forEach(value => console.log(value)); // 2, 4, 6
+```
+
+### `filter(fn)`
+
+Filters out values from the stream based on a predicate.
+
+```js
 const stream = Stream.sync([1, 2, 3, 4, 5]);
-
-// Create a window with a skip of 1 and a take of 2
-const windowedStream = stream.window(1, 2);
-
-console.log(windowedStream.collect());  // [2, 3]
+stream.filter(x => x % 2 === 0).forEach(value => console.log(value)); // 2, 4
 ```
 
-### Reduce
+### `flatMap(fn)`
 
-Reduce the stream to a single value by applying a function.
+Flattens the stream by applying a function that returns an iterable.
 
-```typescript
-import Stream from 'toy-streams';
+```js
+const stream = Stream.sync([1, 2, 3]);
+stream.flatMap(x => [x, x * 2]).forEach(value => console.log(value)); // 1, 2, 2, 4, 3, 6
+```
 
+### `forEach(fn)`
+
+Iterates through the stream and applies the provided function to each value.
+
+```js
+const stream = Stream.sync([1, 2, 3]);
+stream.forEach(value => console.log(value)); // 1, 2, 3
+```
+
+### `reduce(fn, init)`
+
+Reduces the stream to a single value based on the provided accumulator function.
+
+```js
 const stream = Stream.sync([1, 2, 3, 4]);
-
-// Sum the values using reduce
 const sum = stream.reduce((a, b) => a + b, 0);
-
-console.log(sum);  // 10
+console.log(sum); // 10
 ```
 
-### Delayed Execution
+### `collect()`
 
-You can introduce delays in processing stream elements using `delayed`.
+Collects all values in the stream into an array.
 
-```typescript
-import Stream from 'toy-streams';
-
-const stream = Stream.async({
-  async *[Symbol.asyncIterator]() {
-    yield 1;
-    yield 2;
-    yield 3;
-  }
-});
-
-// Introduce a 1-second delay for each element
-const delayedStream = stream.delayed(1000);
-
-async function processDelayed() {
-  for await (const value of delayedStream) {
-    console.log(value);  // Logs values with a delay of 1 second between each
-  }
-}
-
-processDelayed();
+```js
+const stream = Stream.sync([1, 2, 3]);
+const values = stream.collect();
+console.log(values); // [1, 2, 3]
 ```
 
-### Measuring Performance
+---
 
-Measure the time it takes to process each element in the stream:
+## Examples
 
-```typescript
-import Stream from 'toy-streams';
+### Basic Usage
 
+Create a basic synchronous stream from an array and iterate over its values:
+
+```js
 const stream = Stream.sync([1, 2, 3, 4, 5]);
-
-// Measure the time taken for each element
-const measuringStream = stream.measuring();
-
-console.log(measuringStream.collect());  // [ [1, time], [2, time], ... ]
+stream.forEach(value => console.log(value)); // 1, 2, 3, 4, 5
 ```
 
-## API
+### Mapping and Transforming
 
-### Stream Class Methods
+Map each value to its square:
 
-- `Stream.once(fn)`: Creates a stream from a function that is called only once.
-- `Stream.onceAsync(fn)`: Creates an asynchronous stream from a function that is called only once.
-- `Stream.sync(it)`: Creates a synchronous stream from an iterable or iterator.
-- `Stream.async(it)`: Creates an asynchronous stream from an async iterable or async iterator.
-- `Stream.gather(it)`: Creates a stream that gathers the results of promises from an iterable/iterator.
-- `Stream.flatten(it)`: Flattens nested streams (either sync or async).
-- `Stream.iterate(fn, start)`: Creates an infinite synchronous stream starting at `start`, applying the `fn` function.
-- `Stream.iterateAsync(fn, start)`: Creates an infinite asynchronous stream starting at `start`, applying the `fn` function.
+```js
+const stream = Stream.sync([1, 2, 3, 4, 5]);
+stream.map(x => x * x).forEach(value => console.log(value)); // 1, 4, 9, 16, 25
+```
 
-### SyncStream and AsyncStream Methods
+### Flattening
 
-- `map(fn)`: Maps over each element, returning a new stream.
-- `flatMap(fn)`: Flattens and maps over each element, returning a new stream.
-- `filter(fn)`: Filters the stream based on a predicate function.
-- `window(skip, take)`: Creates a sliding window over the stream.
-- `forEach(fn)`: Applies a function to each element of the stream.
-- `delayed(ms)`: Adds a delay (in milliseconds) to each stream element.
-- `extend(other)`: Merges the current stream with another stream (either sync or async).
-- `reduce(fn, init)`: Reduces the stream to a single value using the provided function.
-- `collect()`: Collects all elements into an array.
-- `measuring()`: Measures the time taken to process each element.
+Flatten a stream of streams:
 
-## Conclusion
+```js
+const stream = Stream.flatten(Stream.sync([Stream.sync([1, 2]), Stream.sync([3, 4])]));
+stream.forEach(value => console.log(value)); // 1, 2, 3, 4
+```
 
-This library provides a powerful and flexible API to work with both synchronous and asynchronous streams. Whether you're dealing with iterables, async iterables, or streams of promises, this library allows for composing and manipulating streams with ease.
+### Async Operations
 
+Create an asynchronous stream and use `forEach` with `await`:
+
+```js
+const asyncStream = Stream.async((async function*() {
+  yield 1;
+  yield 2;
+  yield 3;
+})());
+asyncStream.forEach(value => console.log(value)); // 1, 2, 3
+```
+
+### Batching
+
+Batch values into groups of three:
+
+```js
+const stream = Stream.sync([1, 2, 3, 4, 5, 6]);

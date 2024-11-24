@@ -2,6 +2,20 @@ function eos() {
   return { done: true, value: undefined as any };
 }
 
+type AnyItera<T> =
+  | Iterable<T>
+  | Iterator<T>
+  | AsyncIterable<T>
+  | AsyncIterator<T>;
+
+function intoIterator<T>(it: AnyItera<T>): Iterator<T> | AsyncIterator<T> {
+  return Symbol.iterator in it
+    ? it[Symbol.iterator]()
+    : Symbol.asyncIterator in it
+    ? it[Symbol.asyncIterator]()
+    : it;
+}
+
 export abstract class Stream<S> {
   constructor(readonly sync: S) {}
 
@@ -11,6 +25,10 @@ export abstract class Stream<S> {
 
   static onceAsync<T>(fn: () => Promise<T>): AsyncStream<T> {
     return new AsyncOnceStream(fn);
+  }
+
+  static moreAsync<T>(fn: () => Promise<T[]>): AsyncStream<T> {
+    return new AsyncMoreStream(fn);
   }
 
   static sync<T>(it: Iterable<T> | Iterator<T>): SyncStream<T> {
@@ -25,20 +43,8 @@ export abstract class Stream<S> {
     );
   }
 
-  static gather<T>(
-    it:
-      | Iterable<Promise<T>>
-      | Iterator<Promise<T>>
-      | AsyncIterable<Promise<T>>
-      | AsyncIterator<Promise<T>>
-  ): AsyncStream<T> {
-    return new GatherIterableStream(
-      Symbol.iterator in it
-        ? it[Symbol.iterator]()
-        : Symbol.asyncIterator in it
-        ? it[Symbol.asyncIterator]()
-        : it
-    );
+  static gather<T>(it: AnyItera<Promise<T>>): AsyncStream<T> {
+    return new GatherIterableStream(intoIterator(it));
   }
 
   static flatten<T>(it: SyncStream<SyncStream<T>>): SyncStream<T>;
@@ -92,13 +98,7 @@ export abstract class SyncStream<T>
   }
 
   flatMapAsync<T1>(
-    fn: (
-      a: T
-    ) =>
-      | (Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>)
-      | Promise<
-          Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>
-        >
+    fn: (a: T) => AnyItera<T1> | Promise<AnyItera<T1>>
   ): AsyncStream<T1> {
     return new AsyncFlatMapStream(this.intoAsync(), fn);
   }
@@ -111,7 +111,7 @@ export abstract class SyncStream<T>
     return new AsyncFilterStream(this.intoAsync(), fn);
   }
 
-  window(skip: number, take: number): SyncStream<T> {
+  window({ skip, take }: { skip?: number; take?: number }): SyncStream<T> {
     return new SyncWindowStream(this, skip, take);
   }
 
@@ -158,6 +158,24 @@ export abstract class SyncStream<T>
     return new SyncIntoAsyncStreamAdapter(this);
   }
 
+  batches(n: number): SyncStream<T[]> {
+    return new SyncBatchesStream(this, n);
+  }
+
+  first(): T | undefined {
+    const { done, value } = this.next();
+    return done ? undefined : value;
+  }
+
+  last(): T | undefined {
+    let item: T | undefined = undefined;
+    while (1) {
+      const { done, value } = this.next();
+      if (done) return item;
+      item = value;
+    }
+  }
+
   abstract next(): IteratorResult<T>;
 }
 
@@ -178,13 +196,7 @@ export abstract class AsyncStream<T>
   }
 
   flatMap<T1>(
-    fn: (
-      a: T
-    ) =>
-      | (Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>)
-      | Promise<
-          Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>
-        >
+    fn: (a: T) => AnyItera<T1> | Promise<AnyItera<T1>>
   ): AsyncStream<T1> {
     return new AsyncFlatMapStream(this, fn);
   }
@@ -232,6 +244,24 @@ export abstract class AsyncStream<T>
     return new AsyncMeasuringStream(this);
   }
 
+  batches(n: number): AsyncStream<T[]> {
+    return new AsyncBatchesStream(this, n);
+  }
+
+  async first(): Promise<T | undefined> {
+    const { done, value } = await this.next();
+    return done ? undefined : value;
+  }
+
+  async last(): Promise<T | undefined> {
+    let item: T | undefined = undefined;
+    while (1) {
+      const { done, value } = await this.next();
+      if (done) return item;
+      item = value;
+    }
+  }
+
   abstract next(): Promise<IteratorResult<T>>;
 }
 
@@ -270,6 +300,21 @@ class AsyncOnceStream<T> extends AsyncStream<T> {
     if (this.called) return eos();
     this.called = true;
     return { done: false, value: await this.fn() };
+  }
+}
+
+class AsyncMoreStream<T> extends AsyncStream<T> {
+  private storage: Iterator<T> | AsyncIterator<T> | null = null;
+
+  constructor(private fn: () => Promise<AnyItera<T>>) {
+    super();
+  }
+
+  async next(): Promise<IteratorResult<T, any>> {
+    if (!this.storage) {
+      this.storage = intoIterator(await this.fn());
+    }
+    return this.storage.next();
   }
 }
 
@@ -362,13 +407,7 @@ class AsyncFlatMapStream<T, T1> extends AsyncStream<T1> {
 
   constructor(
     private stream: AsyncStream<T>,
-    private fn: (
-      a: T
-    ) =>
-      | (Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>)
-      | Promise<
-          Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>
-        >
+    private fn: (a: T) => AnyItera<T1> | Promise<AnyItera<T1>>
   ) {
     super();
   }
@@ -430,8 +469,8 @@ class AsyncFilterStream<T> extends AsyncStream<T> {
 class SyncWindowStream<T> extends SyncStream<T> {
   constructor(
     private stream: SyncStream<T>,
-    private skip: number,
-    private take: number
+    private skip: number | undefined = undefined,
+    private take: number | undefined = undefined
   ) {
     super();
   }
@@ -440,6 +479,9 @@ class SyncWindowStream<T> extends SyncStream<T> {
     while (this.skip) {
       if (this.stream.next().done) return eos();
       this.skip--;
+    }
+    if (this.take === undefined) {
+      return this.stream.next();
     }
     if (!this.take) return eos();
     const { done, value } = this.stream.next();
@@ -452,8 +494,8 @@ class SyncWindowStream<T> extends SyncStream<T> {
 class AsyncWindowStream<T> extends AsyncStream<T> {
   constructor(
     private stream: AsyncStream<T>,
-    private skip: number,
-    private take: number
+    private skip: number | undefined = undefined,
+    private take: number | undefined = undefined
   ) {
     super();
   }
@@ -462,6 +504,9 @@ class AsyncWindowStream<T> extends AsyncStream<T> {
     while (this.skip) {
       if ((await this.stream.next()).done) return eos();
       this.skip--;
+    }
+    if (this.take === undefined) {
+      return this.stream.next();
     }
     if (!this.take) return eos();
     const { done, value } = await this.stream.next();
@@ -616,3 +661,60 @@ class AsyncMeasuringStream<T> extends AsyncStream<[T, number]> {
     return { done, value: [value, performance.now() - from] };
   }
 }
+
+class SyncBatchesStream<T> extends SyncStream<T[]> {
+  private storage: T[] = [];
+  private done = false;
+
+  constructor(private stream: SyncStream<T>, private count: number) {
+    super();
+  }
+
+  #swap() {
+    const r = this.storage;
+    this.storage = [];
+    return r;
+  }
+
+  next(): IteratorResult<T[], any> {
+    if (this.done) return eos();
+    while (this.storage.length < this.count) {
+      const { done, value } = this.stream.next();
+      if (done) {
+        this.done = true;
+        return { done: false, value: this.#swap() };
+      }
+      this.storage.push(value);
+    }
+    return { done: false, value: this.#swap() };
+  }
+}
+
+class AsyncBatchesStream<T> extends AsyncStream<T[]> {
+  private storage: T[] = [];
+  private done = false;
+
+  constructor(private stream: AsyncStream<T>, private count: number) {
+    super();
+  }
+
+  #swap() {
+    const r = this.storage;
+    this.storage = [];
+    return r;
+  }
+
+  async next(): Promise<IteratorResult<T[], any>> {
+    if (this.done) return eos();
+    while (this.storage.length < this.count) {
+      const { done, value } = await this.stream.next();
+      if (done) {
+        this.done = true;
+        return { done: false, value: this.#swap() };
+      }
+      this.storage.push(value);
+    }
+    return { done: false, value: this.#swap() };
+  }
+}
+
