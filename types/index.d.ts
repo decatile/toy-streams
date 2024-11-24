@@ -18,7 +18,7 @@ export declare abstract class SyncStream<T> extends Stream<true> implements Iter
     map<T1>(fn: (a: T) => T1): SyncStream<T1>;
     mapAsync<T1>(fn: (a: T) => Promise<T1>): AsyncStream<T1>;
     flatMap<T1>(fn: (a: T) => Iterable<T1> | Iterator<T1>): SyncStream<T1>;
-    flatMapAsync<T1>(fn: (a: T) => (Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>) | Promise<Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>>): AsyncFlatMapStream<T, T1>;
+    flatMapAsync<T1>(fn: (a: T) => (Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>) | Promise<Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>>): AsyncStream<T1>;
     filter(fn: (a: T) => boolean): SyncStream<T>;
     filterAsync(fn: (a: T) => Promise<boolean>): AsyncStream<T>;
     window(skip: number, take: number): SyncStream<T>;
@@ -36,7 +36,7 @@ export declare abstract class AsyncStream<T> extends Stream<false> implements As
     constructor();
     [Symbol.asyncIterator](): this;
     map<T1>(fn: (a: T) => T1 | Promise<T1>): AsyncStream<T1>;
-    flatMap<T1>(fn: (a: T) => (Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>) | Promise<Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>>): AsyncFlatMapStream<T, T1>;
+    flatMap<T1>(fn: (a: T) => (Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>) | Promise<Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>>): AsyncStream<T1>;
     filter(fn: (a: T) => boolean | Promise<boolean>): AsyncStream<T>;
     window(skip: number, take: number): AsyncStream<T>;
     forEach(fn: (a: T) => any | Promise<any>): Promise<void>;
@@ -46,11 +46,4 @@ export declare abstract class AsyncStream<T> extends Stream<false> implements As
     collect(): Promise<T[]>;
     measuring(): AsyncStream<[T, number]>;
     abstract next(): Promise<IteratorResult<T>>;
-}
-declare class AsyncFlatMapStream<T, T1> extends AsyncStream<T1> {
-    private stream;
-    private fn;
-    private current;
-    constructor(stream: AsyncStream<T>, fn: (a: T) => (Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>) | Promise<Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>>);
-    next(): Promise<IteratorResult<T1, any>>;
 }

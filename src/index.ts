@@ -99,7 +99,7 @@ export abstract class SyncStream<T>
       | Promise<
           Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>
         >
-  ) {
+  ): AsyncStream<T1> {
     return new AsyncFlatMapStream(this.intoAsync(), fn);
   }
 
@@ -185,7 +185,7 @@ export abstract class AsyncStream<T>
       | Promise<
           Iterable<T1> | Iterator<T1> | AsyncIterable<T1> | AsyncIterator<T1>
         >
-  ) {
+  ): AsyncStream<T1> {
     return new AsyncFlatMapStream(this, fn);
   }
 
