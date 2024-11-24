@@ -1,0 +1,28 @@
+{
+  "name": "toy-streams",
+  "version": "1.0.0",
+  "description": "Zero-dependency streams",
+  "main": "./dist/index.js",
+  "types": "./types/index.d.ts",
+  "files": [
+    "dist",
+    "types"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/decatile/toy-streams.git"
+  },
+  "author": "https://github.com/decatile",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/decatile/toy-streams/issues"
+  },
+  "homepage": "https://github.com/decatile/toy-streams#readme",
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
