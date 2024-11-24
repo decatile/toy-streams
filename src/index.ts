@@ -19,16 +19,16 @@ function intoIterator<T>(it: AnyItera<T>): Iterator<T> | AsyncIterator<T> {
 export abstract class Stream<S> {
   constructor(readonly sync: S) {}
 
-  static once<T>(fn: () => T): SyncStream<T> {
-    return new SyncOnceStream(fn);
+  static once<T>(x: T): SyncStream<T> {
+    return new SyncOnceStream(x);
   }
 
-  static onceAsync<T>(fn: () => Promise<T>): AsyncStream<T> {
-    return new AsyncOnceStream(fn);
+  static onceAsync<T>(x: Promise<T>): AsyncStream<T> {
+    return new AsyncOnceStream(x);
   }
 
-  static moreAsync<T>(fn: () => Promise<T[]>): AsyncStream<T> {
-    return new AsyncMoreStream(fn);
+  static moreAsync<T>(x: Promise<AnyItera<T>>): AsyncStream<T> {
+    return new AsyncMoreStream(x);
   }
 
   static sync<T>(it: Iterable<T> | Iterator<T>): SyncStream<T> {
@@ -276,43 +276,43 @@ class SyncIntoAsyncStreamAdapter<T> extends AsyncStream<T> {
 }
 
 class SyncOnceStream<T> extends SyncStream<T> {
-  private called: boolean = false;
+  private done: boolean = false;
 
-  constructor(private fn: () => T) {
+  constructor(private x: T) {
     super();
   }
 
   next(): IteratorResult<T, any> {
-    if (this.called) return eos();
-    this.called = true;
-    return { done: false, value: this.fn() };
+    if (this.done) return eos();
+    this.done = true;
+    return { done: false, value: this.x };
   }
 }
 
 class AsyncOnceStream<T> extends AsyncStream<T> {
-  private called: boolean = false;
+  private done: boolean = false;
 
-  constructor(private fn: () => Promise<T>) {
+  constructor(private x: Promise<T>) {
     super();
   }
 
   async next(): Promise<IteratorResult<T, any>> {
-    if (this.called) return eos();
-    this.called = true;
-    return { done: false, value: await this.fn() };
+    if (this.done) return eos();
+    this.done = true;
+    return { done: false, value: await this.x };
   }
 }
 
 class AsyncMoreStream<T> extends AsyncStream<T> {
   private storage: Iterator<T> | AsyncIterator<T> | null = null;
 
-  constructor(private fn: () => Promise<AnyItera<T>>) {
+  constructor(private x: Promise<AnyItera<T>>) {
     super();
   }
 
   async next(): Promise<IteratorResult<T, any>> {
     if (!this.storage) {
-      this.storage = intoIterator(await this.fn());
+      this.storage = intoIterator(await this.x);
     }
     return this.storage.next();
   }
@@ -717,4 +717,3 @@ class AsyncBatchesStream<T> extends AsyncStream<T[]> {
     return { done: false, value: this.#swap() };
   }
 }
-
