@@ -1,7 +1,3 @@
-Here's a comprehensive `README.md` based on the framework you've provided. It covers the main API, class structure, and examples for commonly used functionality.
-
----
-
 # Stream Framework
 
 This is a JavaScript framework for working with synchronous and asynchronous streams. It provides a unified API for iterating, transforming, filtering, and combining streams of data. The framework supports both synchronous and asynchronous iterables and iterators.

@@ -1,5 +1,18 @@
+var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
+var _SyncBatchesStream_instances, _SyncBatchesStream_swap, _AsyncBatchesStream_instances, _AsyncBatchesStream_swap;
 function eos() {
     return { done: true, value: undefined };
+}
+function intoIterator(it) {
+    return Symbol.iterator in it
+        ? it[Symbol.iterator]()
+        : Symbol.asyncIterator in it
+            ? it[Symbol.asyncIterator]()
+            : it;
 }
 export class Stream {
     constructor(sync) {
@@ -11,6 +24,9 @@ export class Stream {
     static onceAsync(fn) {
         return new AsyncOnceStream(fn);
     }
+    static moreAsync(fn) {
+        return new AsyncMoreStream(fn);
+    }
     static sync(it) {
         return new SyncIterableStream(Symbol.iterator in it ? it[Symbol.iterator]() : it);
     }
@@ -18,11 +34,7 @@ export class Stream {
         return new AsyncIterableStream(Symbol.asyncIterator in it ? it[Symbol.asyncIterator]() : it);
     }
     static gather(it) {
-        return new GatherIterableStream(Symbol.iterator in it
-            ? it[Symbol.iterator]()
-            : Symbol.asyncIterator in it
-                ? it[Symbol.asyncIterator]()
-                : it);
+        return new GatherIterableStream(intoIterator(it));
     }
     static flatten(it) {
         if (it.sync) {
@@ -65,7 +77,7 @@ export class SyncStream extends Stream {
     filterAsync(fn) {
         return new AsyncFilterStream(this.intoAsync(), fn);
     }
-    window(skip, take) {
+    window({ skip, take }) {
         return new SyncWindowStream(this, skip, take);
     }
     forEach(fn) {
@@ -104,6 +116,22 @@ export class SyncStream extends Stream {
     }
     intoAsync() {
         return new SyncIntoAsyncStreamAdapter(this);
+    }
+    batches(n) {
+        return new SyncBatchesStream(this, n);
+    }
+    first() {
+        const { done, value } = this.next();
+        return done ? undefined : value;
+    }
+    last() {
+        let item = undefined;
+        while (1) {
+            const { done, value } = this.next();
+            if (done)
+                return item;
+            item = value;
+        }
     }
 }
 export class AsyncStream extends Stream {
@@ -157,6 +185,22 @@ export class AsyncStream extends Stream {
     measuring() {
         return new AsyncMeasuringStream(this);
     }
+    batches(n) {
+        return new AsyncBatchesStream(this, n);
+    }
+    async first() {
+        const { done, value } = await this.next();
+        return done ? undefined : value;
+    }
+    async last() {
+        let item = undefined;
+        while (1) {
+            const { done, value } = await this.next();
+            if (done)
+                return item;
+            item = value;
+        }
+    }
 }
 class SyncIntoAsyncStreamAdapter extends AsyncStream {
     constructor(stream) {
@@ -191,6 +235,19 @@ class AsyncOnceStream extends AsyncStream {
             return eos();
         this.called = true;
         return { done: false, value: await this.fn() };
+    }
+}
+class AsyncMoreStream extends AsyncStream {
+    constructor(fn) {
+        super();
+        this.fn = fn;
+        this.storage = null;
+    }
+    async next() {
+        if (!this.storage) {
+            this.storage = intoIterator(await this.fn());
+        }
+        return this.storage.next();
     }
 }
 class SyncIterableStream extends SyncStream {
@@ -335,7 +392,7 @@ class AsyncFilterStream extends AsyncStream {
     }
 }
 class SyncWindowStream extends SyncStream {
-    constructor(stream, skip, take) {
+    constructor(stream, skip = undefined, take = undefined) {
         super();
         this.stream = stream;
         this.skip = skip;
@@ -347,6 +404,9 @@ class SyncWindowStream extends SyncStream {
                 return eos();
             this.skip--;
         }
+        if (this.take === undefined) {
+            return this.stream.next();
+        }
         if (!this.take)
             return eos();
         const { done, value } = this.stream.next();
@@ -357,7 +417,7 @@ class SyncWindowStream extends SyncStream {
     }
 }
 class AsyncWindowStream extends AsyncStream {
-    constructor(stream, skip, take) {
+    constructor(stream, skip = undefined, take = undefined) {
         super();
         this.stream = stream;
         this.skip = skip;
@@ -368,6 +428,9 @@ class AsyncWindowStream extends AsyncStream {
             if ((await this.stream.next()).done)
                 return eos();
             this.skip--;
+        }
+        if (this.take === undefined) {
+            return this.stream.next();
         }
         if (!this.take)
             return eos();
@@ -517,4 +580,60 @@ class AsyncMeasuringStream extends AsyncStream {
         return { done, value: [value, performance.now() - from] };
     }
 }
+class SyncBatchesStream extends SyncStream {
+    constructor(stream, count) {
+        super();
+        _SyncBatchesStream_instances.add(this);
+        this.stream = stream;
+        this.count = count;
+        this.storage = [];
+        this.done = false;
+    }
+    next() {
+        if (this.done)
+            return eos();
+        while (this.storage.length < this.count) {
+            const { done, value } = this.stream.next();
+            if (done) {
+                this.done = true;
+                return { done: false, value: __classPrivateFieldGet(this, _SyncBatchesStream_instances, "m", _SyncBatchesStream_swap).call(this) };
+            }
+            this.storage.push(value);
+        }
+        return { done: false, value: __classPrivateFieldGet(this, _SyncBatchesStream_instances, "m", _SyncBatchesStream_swap).call(this) };
+    }
+}
+_SyncBatchesStream_instances = new WeakSet(), _SyncBatchesStream_swap = function _SyncBatchesStream_swap() {
+    const r = this.storage;
+    this.storage = [];
+    return r;
+};
+class AsyncBatchesStream extends AsyncStream {
+    constructor(stream, count) {
+        super();
+        _AsyncBatchesStream_instances.add(this);
+        this.stream = stream;
+        this.count = count;
+        this.storage = [];
+        this.done = false;
+    }
+    async next() {
+        if (this.done)
+            return eos();
+        while (this.storage.length < this.count) {
+            const { done, value } = await this.stream.next();
+            if (done) {
+                this.done = true;
+                return { done: false, value: __classPrivateFieldGet(this, _AsyncBatchesStream_instances, "m", _AsyncBatchesStream_swap).call(this) };
+            }
+            this.storage.push(value);
+        }
+        return { done: false, value: __classPrivateFieldGet(this, _AsyncBatchesStream_instances, "m", _AsyncBatchesStream_swap).call(this) };
+    }
+}
+_AsyncBatchesStream_instances = new WeakSet(), _AsyncBatchesStream_swap = function _AsyncBatchesStream_swap() {
+    const r = this.storage;
+    this.storage = [];
+    return r;
+};
 //# sourceMappingURL=index.js.map
