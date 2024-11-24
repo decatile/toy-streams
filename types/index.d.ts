@@ -2,9 +2,9 @@ type AnyItera<T> = Iterable<T> | Iterator<T> | AsyncIterable<T> | AsyncIterator<
 export declare abstract class Stream<S> {
     readonly sync: S;
     constructor(sync: S);
-    static once<T>(fn: () => T): SyncStream<T>;
-    static onceAsync<T>(fn: () => Promise<T>): AsyncStream<T>;
-    static moreAsync<T>(fn: () => Promise<T[]>): AsyncStream<T>;
+    static once<T>(x: T): SyncStream<T>;
+    static onceAsync<T>(x: Promise<T>): AsyncStream<T>;
+    static moreAsync<T>(x: Promise<AnyItera<T>>): AsyncStream<T>;
     static sync<T>(it: Iterable<T> | Iterator<T>): SyncStream<T>;
     static async<T>(it: AsyncIterable<T> | AsyncIterator<T>): AsyncStream<T>;
     static gather<T>(it: AnyItera<Promise<T>>): AsyncStream<T>;

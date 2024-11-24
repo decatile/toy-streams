@@ -18,14 +18,14 @@ export class Stream {
     constructor(sync) {
         this.sync = sync;
     }
-    static once(fn) {
-        return new SyncOnceStream(fn);
+    static once(x) {
+        return new SyncOnceStream(x);
     }
-    static onceAsync(fn) {
-        return new AsyncOnceStream(fn);
+    static onceAsync(x) {
+        return new AsyncOnceStream(x);
     }
-    static moreAsync(fn) {
-        return new AsyncMoreStream(fn);
+    static moreAsync(x) {
+        return new AsyncMoreStream(x);
     }
     static sync(it) {
         return new SyncIterableStream(Symbol.iterator in it ? it[Symbol.iterator]() : it);
@@ -212,40 +212,40 @@ class SyncIntoAsyncStreamAdapter extends AsyncStream {
     }
 }
 class SyncOnceStream extends SyncStream {
-    constructor(fn) {
+    constructor(x) {
         super();
-        this.fn = fn;
-        this.called = false;
+        this.x = x;
+        this.done = false;
     }
     next() {
-        if (this.called)
+        if (this.done)
             return eos();
-        this.called = true;
-        return { done: false, value: this.fn() };
+        this.done = true;
+        return { done: false, value: this.x };
     }
 }
 class AsyncOnceStream extends AsyncStream {
-    constructor(fn) {
+    constructor(x) {
         super();
-        this.fn = fn;
-        this.called = false;
+        this.x = x;
+        this.done = false;
     }
     async next() {
-        if (this.called)
+        if (this.done)
             return eos();
-        this.called = true;
-        return { done: false, value: await this.fn() };
+        this.done = true;
+        return { done: false, value: await this.x };
     }
 }
 class AsyncMoreStream extends AsyncStream {
-    constructor(fn) {
+    constructor(x) {
         super();
-        this.fn = fn;
+        this.x = x;
         this.storage = null;
     }
     async next() {
         if (!this.storage) {
-            this.storage = intoIterator(await this.fn());
+            this.storage = intoIterator(await this.x);
         }
         return this.storage.next();
     }
