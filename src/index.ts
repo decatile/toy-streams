@@ -1,20 +1,17 @@
 type StreamItem<T> = { i: T } | { e: unknown } | { d: true };
 
 const StreamItem = Object.freeze({
-  done: { d: true } as { d: true } satisfies StreamItem<any>,
-  item: <T>(value: T) => ({ i: value } satisfies StreamItem<T>),
-  error: (error: unknown) => ({ e: error } satisfies StreamItem<any>),
+  done: { d: true as const },
+  item: <T>(value: T) => ({ i: value }),
+  error: (error: unknown) => ({ e: error }),
   fromResult: <T>(item: IteratorResult<T>) =>
     item.done ? StreamItem.done : StreamItem.item(item.value),
   intoResult: <T>(item: StreamItem<T>) => {
     if ("i" in item) {
-      return { done: false, value: item.i } as { done: false; value: T };
+      return { done: false as const, value: item.i };
     }
     if ("d" in item) {
-      return { done: true, value: undefined } as {
-        done: true;
-        value: undefined;
-      };
+      return { done: true as const, value: undefined };
     }
     throw item.e;
   },
