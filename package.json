@@ -1,11 +1,13 @@
 {
   "name": "toy-streams",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Zero-dependency streams",
   "main": "./dist/index.js",
   "type": "module",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build"
