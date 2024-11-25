@@ -11,10 +11,6 @@ import {
 } from "./combinators/from-iterator";
 import { GatherIterableStream } from "./combinators/gather";
 import { AsyncIterateStream, SyncIterateStream } from "./combinators/iterate";
-import {
-  AsyncIntoIteratorStreamAdapter,
-  SyncIntoIteratorStreamAdapter,
-} from "./combinators/iterator";
 import { AsyncMapStream, SyncMapStream } from "./combinators/map";
 import {
   AsyncMeasuredStream,
@@ -22,17 +18,15 @@ import {
 } from "./combinators/measuring";
 import { SyncIntoAsyncStreamAdapter } from "./combinators/sync-as-async";
 import { AsyncWindowStream, SyncWindowStream } from "./combinators/window";
-import {
-  SyncZipStream as SyncJoinStream,
-  AsyncZipStream as AsyncJoinStream,
-} from "./combinators/join";
+import { SyncJoinStream, AsyncJoinStream } from "./combinators/join";
 import {
   AnyItera,
   StreamItem,
   JoinStreamKind,
   JoinStreamReturnType,
+  Either,
 } from "./types";
-import { intoIter } from "./utils";
+import { intoIter, Items } from "./utils";
 
 export abstract class Stream<S> {
   constructor(readonly sync: S) {}
@@ -115,7 +109,10 @@ export abstract class Stream<S> {
   }
 }
 
-export abstract class SyncStream<T> extends Stream<true> {
+export abstract class SyncStream<T>
+  extends Stream<true>
+  implements Iterable<T>, Iterator<T>
+{
   constructor() {
     super(true);
   }
@@ -132,7 +129,7 @@ export abstract class SyncStream<T> extends Stream<true> {
    * @returns An asynchronous stream simular to SyncStream.map, but function returns promise instead of pure value
    */
   mapAsync<T1>(fn: (a: T) => Promise<T1>): AsyncStream<T1> {
-    return new AsyncMapStream(this.intoAsync(), fn);
+    return new AsyncMapStream(this.async(), fn);
   }
 
   /**
@@ -150,7 +147,7 @@ export abstract class SyncStream<T> extends Stream<true> {
   flatMapAsync<T1>(
     fn: (a: T) => AnyItera<T1> | Promise<AnyItera<T1>>
   ): AsyncStream<T1> {
-    return new AsyncFlatMapStream(this.intoAsync(), fn);
+    return new AsyncFlatMapStream(this.async(), fn);
   }
 
   /**
@@ -165,7 +162,7 @@ export abstract class SyncStream<T> extends Stream<true> {
    * @returns An asynchronous stream simular to SyncStream.filter, buf function returns promise instead of pure value
    */
   filterAsync(fn: (a: T) => Promise<boolean>): AsyncStream<T> {
-    return new AsyncFilterStream(this.intoAsync(), fn);
+    return new AsyncFilterStream(this.async(), fn);
   }
 
   /**
@@ -184,9 +181,9 @@ export abstract class SyncStream<T> extends Stream<true> {
   forEach(fn: (a: T) => any): void {
     while (1) {
       const item = this.nextItem();
-      if ("d" in item) return;
-      if ("e" in item) throw item.e;
-      fn(item.i);
+      if ("done" in item) return;
+      if ("error" in item) throw item.error;
+      fn(item.value);
     }
   }
 
@@ -195,7 +192,7 @@ export abstract class SyncStream<T> extends Stream<true> {
    * @returns An asynchronous stream that delay every yield by `ms` milliseconds
    */
   delayed(ms: number): AsyncStream<T> {
-    return new AsyncDelayedStream(this.intoAsync(), ms);
+    return new AsyncDelayedStream(this.async(), ms);
   }
 
   /**
@@ -208,7 +205,7 @@ export abstract class SyncStream<T> extends Stream<true> {
     if (other.sync) {
       return new SyncExtendStream(this, other);
     } else {
-      return new AsyncExtendStream(this.intoAsync(), other);
+      return new AsyncExtendStream(this.async(), other);
     }
   }
 
@@ -220,9 +217,9 @@ export abstract class SyncStream<T> extends Stream<true> {
   reduce<R>(fn: (a: T, b: R) => R, init: R): R {
     while (1) {
       const item = this.nextItem();
-      if ("d" in item) return init;
-      if ("e" in item) throw item.e;
-      init = fn(item.i, init);
+      if ("done" in item) return init;
+      if ("error" in item) throw item.error;
+      init = fn(item.value, init);
     }
     throw Error("Impossible");
   }
@@ -235,17 +232,10 @@ export abstract class SyncStream<T> extends Stream<true> {
   }
 
   /**
-   * @returns A synchronous stream which acts as asynchronously stream
+   * @returns A synchronous stream which acts as asynchronous stream
    */
-  intoAsync(): AsyncStream<T> {
+  async(): AsyncStream<T> {
     return new SyncIntoAsyncStreamAdapter(this);
-  }
-
-  /**
-   * @returns An iterator that yields all stream elements
-   */
-  iterator(): Iterable<T> & Iterator<T> {
-    return new SyncIntoIteratorStreamAdapter(this);
   }
 
   /**
@@ -262,9 +252,9 @@ export abstract class SyncStream<T> extends Stream<true> {
    */
   first(): T | null {
     const item = this.nextItem();
-    if ("d" in item) return null;
-    if ("e" in item) throw item.e;
-    return item.i;
+    if ("done" in item) return null;
+    if ("error" in item) throw item.error;
+    return item.value;
   }
 
   /**
@@ -274,9 +264,9 @@ export abstract class SyncStream<T> extends Stream<true> {
     let r: T | null = null;
     while (1) {
       const item = this.nextItem();
-      if ("d" in item) break;
-      if ("e" in item) throw item.e;
-      r = item.i;
+      if ("done" in item) break;
+      if ("error" in item) throw item.error;
+      r = item.value;
     }
     return r;
   }
@@ -298,14 +288,31 @@ export abstract class SyncStream<T> extends Stream<true> {
     if (other.sync) {
       return new SyncJoinStream(this, other, join);
     } else {
-      return new AsyncJoinStream(this.intoAsync(), other, join);
+      return new AsyncJoinStream(this.async(), other, join);
     }
+  }
+
+  collect(): T[] {
+    const r = [];
+    for (const x of this) r.push(x);
+    return r;
+  }
+
+  [Symbol.iterator]() {
+    return this;
+  }
+
+  next(): IteratorResult<T> {
+    return Items.into(this.nextItem());
   }
 
   abstract nextItem(): StreamItem<T>;
 }
 
-export abstract class AsyncStream<T> extends Stream<false> {
+export abstract class AsyncStream<T>
+  extends Stream<false>
+  implements AsyncIterable<T>, AsyncIterator<T>
+{
   constructor() {
     super(false);
   }
@@ -353,9 +360,9 @@ export abstract class AsyncStream<T> extends Stream<false> {
   async forEach(fn: (a: T) => any): Promise<void> {
     while (1) {
       const item = await this.nextItem();
-      if ("d" in item) return;
-      if ("e" in item) throw item.e;
-      await fn(item.i);
+      if ("done" in item) return;
+      if ("error" in item) throw item.error;
+      await fn(item.value);
     }
   }
 
@@ -366,9 +373,9 @@ export abstract class AsyncStream<T> extends Stream<false> {
   async forEachAsync(fn: (a: T) => Promise<any>): Promise<void> {
     while (1) {
       const item = await this.nextItem();
-      if ("d" in item) return;
-      if ("e" in item) throw item.e;
-      await fn(item.i);
+      if ("done" in item) return;
+      if ("error" in item) throw item.error;
+      await fn(item.value);
     }
   }
 
@@ -385,7 +392,7 @@ export abstract class AsyncStream<T> extends Stream<false> {
    * @returns A stream which firstly yields all elements from underlying stream, then from `other` stream
    */
   extend(other: SyncStream<T> | AsyncStream<T>): AsyncStream<T> {
-    return new AsyncExtendStream(this, other.sync ? other.intoAsync() : other);
+    return new AsyncExtendStream(this, other.sync ? other.async() : other);
   }
 
   /**
@@ -396,9 +403,9 @@ export abstract class AsyncStream<T> extends Stream<false> {
   async reduce<R>(fn: (a: T, b: R) => R | Promise<R>, init: R): Promise<R> {
     while (1) {
       const item = await this.nextItem();
-      if ("d" in item) return init;
-      if ("e" in item) throw item.e;
-      init = await fn(item.i, init);
+      if ("done" in item) return init;
+      if ("error" in item) throw item.error;
+      init = await fn(item.value, init);
     }
     throw Error("Impossible");
   }
@@ -408,13 +415,6 @@ export abstract class AsyncStream<T> extends Stream<false> {
    */
   measured(): AsyncStream<[T, number]> {
     return new AsyncMeasuredStream(this);
-  }
-
-  /**
-   * @returns An iterator that yields all stream elements
-   */
-  iterator(): AsyncIterable<T> & AsyncIterator<T> {
-    return new AsyncIntoIteratorStreamAdapter(this);
   }
 
   /**
@@ -431,9 +431,9 @@ export abstract class AsyncStream<T> extends Stream<false> {
    */
   async first(): Promise<T | null> {
     const item = await this.nextItem();
-    if ("d" in item) return null;
-    if ("e" in item) throw item.e;
-    return item.i;
+    if ("done" in item) return null;
+    if ("error" in item) throw item.error;
+    return item.value;
   }
 
   /**
@@ -443,9 +443,9 @@ export abstract class AsyncStream<T> extends Stream<false> {
     let r: T | null = null;
     while (1) {
       const item = await this.nextItem();
-      if ("d" in item) break;
-      if ("e" in item) throw item.e;
-      r = item.i;
+      if ("done" in item) break;
+      if ("error" in item) throw item.error;
+      r = item.value;
     }
     return r;
   }
@@ -459,11 +459,21 @@ export abstract class AsyncStream<T> extends Stream<false> {
     other: SyncStream<T1> | AsyncStream<T1>,
     kind: K
   ): AsyncStream<JoinStreamReturnType<T, T1, K>> {
-    return new AsyncJoinStream(
-      this,
-      other.sync ? other.intoAsync() : other,
-      kind
-    );
+    return new AsyncJoinStream(this, other.sync ? other.async() : other, kind);
+  }
+
+  async collect(): Promise<T[]> {
+    const r = [];
+    for await (const x of this) r.push(x);
+    return r;
+  }
+
+  [Symbol.asyncIterator]() {
+    return this;
+  }
+
+  async next(): Promise<IteratorResult<T>> {
+    return Items.into(await this.nextItem());
   }
 
   abstract nextItem(): Promise<StreamItem<T>>;

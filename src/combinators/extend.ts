@@ -16,7 +16,7 @@ export class SyncExtendStream<T> extends SyncStream<T> {
       const current = this.#streams[this.#index];
       if (!current) return Items.done;
       const item = current.nextItem();
-      if (!("d" in item)) return item;
+      if (!("done" in item)) return item;
       this.#index++;
     }
     throw Error("Impossible");
@@ -37,7 +37,7 @@ export class AsyncExtendStream<T> extends AsyncStream<T> {
       const current = this.#streams[this.#index];
       if (!current) return Items.done;
       const item = await current.nextItem();
-      if (!("d" in item)) return item;
+      if (!("done" in item)) return item;
       this.#index++;
     }
     throw Error("Impossible");

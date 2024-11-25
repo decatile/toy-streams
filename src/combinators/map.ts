@@ -14,9 +14,9 @@ export class SyncMapStream<T, T1> extends SyncStream<T1> {
 
   nextItem(): StreamItem<T1> {
     const item = this.#stream.nextItem();
-    if (!("i" in item)) return item;
+    if (!("value" in item)) return item;
     try {
-      return Items.item(this.#fn(item.i));
+      return Items.item(this.#fn(item.value));
     } catch (e) {
       return Items.error(e);
     }
@@ -35,9 +35,9 @@ export class AsyncMapStream<T, T1> extends AsyncStream<T1> {
 
   async nextItem(): Promise<StreamItem<T1>> {
     const item = await this.#stream.nextItem();
-    if (!("i" in item)) return item;
+    if (!("value" in item)) return item;
     try {
-      return Items.item(await this.#fn(item.i));
+      return Items.item(await this.#fn(item.value));
     } catch (e) {
       return Items.error(e);
     }

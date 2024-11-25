@@ -1,4 +1,6 @@
-export type StreamItem<T> = { i: T } | { e: unknown } | { d: true };
+export type Either<A, B> = { left: A } | { right: B };
+
+export type StreamItem<T> = { value: T } | { error: unknown } | { done: true };
 
 export type AnyItera<T> =
   | Iterable<T>

@@ -16,7 +16,7 @@ export class SyncFilterStream<T> extends SyncStream<T> {
     try {
       while (1) {
         const item = this.#stream.nextItem();
-        if (!("i" in item) || this.#fn(item.i)) return item;
+        if (!("value" in item) || this.#fn(item.value)) return item;
       }
     } catch (e) {
       return Items.error(e);
@@ -42,7 +42,7 @@ export class AsyncFilterStream<T> extends AsyncStream<T> {
     try {
       while (1) {
         const item = await this.#stream.nextItem();
-        if (!("i" in item) || (await this.#fn(item.i))) return item;
+        if (!("value" in item) || (await this.#fn(item.value))) return item;
       }
     } catch (e) {
       return Items.error(e);

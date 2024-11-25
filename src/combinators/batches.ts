@@ -24,12 +24,12 @@ export class SyncBatchesStream<T> extends SyncStream<T[]> {
     if (this.#done) return Items.done;
     while (this.#storage.length < this.#count) {
       const item = this.#stream.nextItem();
-      if ("d" in item) {
+      if ("done" in item) {
         this.#done = true;
         return Items.item(this.#swap());
       }
-      if ("e" in item) return item;
-      this.#storage.push(item.i);
+      if ("error" in item) return item;
+      this.#storage.push(item.value);
     }
     return Items.item(this.#swap());
   }
@@ -57,12 +57,12 @@ export class AsyncBatchesStream<T> extends AsyncStream<T[]> {
     if (this.#done) return Items.done;
     while (this.#storage.length < this.#count) {
       const item = await this.#stream.nextItem();
-      if ("d" in item) {
+      if ("done" in item) {
         this.#done = true;
         return Items.item(this.#swap());
       }
-      if ("e" in item) return item;
-      this.#storage.push(item.i);
+      if ("error" in item) return item;
+      this.#storage.push(item.value);
     }
     return Items.item(this.#swap());
   }

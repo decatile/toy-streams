@@ -13,8 +13,8 @@ export class SyncMeasuringStream<T> extends SyncStream<[T, number]> {
   nextItem(): StreamItem<[T, number]> {
     const from = performance.now();
     const item = this.#stream.nextItem();
-    if (!("i" in item)) return item;
-    return Items.item([item.i, performance.now() - from]);
+    if (!("value" in item)) return item;
+    return Items.item([item.value, performance.now() - from]);
   }
 }
 
@@ -29,7 +29,7 @@ export class AsyncMeasuredStream<T> extends AsyncStream<[T, number]> {
   async nextItem(): Promise<StreamItem<[T, number]>> {
     const from = performance.now();
     const item = await this.#stream.nextItem();
-    if (!("i" in item)) return item;
-    return Items.item([item.i, performance.now() - from]);
+    if (!("value" in item)) return item;
+    return Items.item([item.value, performance.now() - from]);
   }
 }

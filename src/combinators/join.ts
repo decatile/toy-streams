@@ -2,7 +2,7 @@ import { SyncStream, AsyncStream } from "../base";
 import { StreamItem, JoinStreamKind, JoinStreamReturnType } from "../types";
 import { Items } from "../utils";
 
-export class SyncZipStream<A, B, K extends JoinStreamKind> extends SyncStream<
+export class SyncJoinStream<A, B, K extends JoinStreamKind> extends SyncStream<
   JoinStreamReturnType<A, B, K>
 > {
   #aexhausted = false;
@@ -11,7 +11,7 @@ export class SyncZipStream<A, B, K extends JoinStreamKind> extends SyncStream<
   #as;
   #bs;
 
-  constructor(as: SyncStream<A>, bs: SyncStream<B>, kind:K) {
+  constructor(as: SyncStream<A>, bs: SyncStream<B>, kind: K) {
     super();
     this.#as = as;
     this.#bs = bs;
@@ -32,24 +32,27 @@ export class SyncZipStream<A, B, K extends JoinStreamKind> extends SyncStream<
 
   #inner() {
     const i1 = this.#as.nextItem();
-    if (!("i" in i1)) return i1;
+    if (!("value" in i1)) return i1;
     const i2 = this.#bs.nextItem();
-    if (!("i" in i2)) return i2;
-    return Items.item([i1.i, i2.i] as [A, B]);
+    if (!("value" in i2)) return i2;
+    return Items.item([i1.value, i2.value] as [A, B]);
   }
 
   #left() {
     const i1 = this.#as.nextItem();
-    if (!("i" in i1)) return i1;
+    if (!("value" in i1)) return i1;
     let i2: StreamItem<B>;
     if (this.#bexhausted) {
       i2 = Items.done;
     } else {
       i2 = this.#bs.nextItem();
-      if ("d" in i2) this.#bexhausted = true;
-      if ("e" in i2) return i2;
+      if ("done" in i2) this.#bexhausted = true;
+      if ("error" in i2) return i2;
     }
-    return Items.item([i1.i, "i" in i2 ? i2.i : null] as [A, B | null]);
+    return Items.item([i1.value, "value" in i2 ? i2.value : null] as [
+      A,
+      B | null
+    ]);
   }
 
   #right() {
@@ -58,12 +61,15 @@ export class SyncZipStream<A, B, K extends JoinStreamKind> extends SyncStream<
       i1 = Items.done;
     } else {
       i1 = this.#as.nextItem();
-      if ("d" in i1) this.#aexhausted = true;
-      if ("e" in i1) return i1;
+      if ("done" in i1) this.#aexhausted = true;
+      if ("error" in i1) return i1;
     }
     const i2 = this.#bs.nextItem();
-    if (!("i" in i2)) return i2;
-    return Items.item(["i" in i1 ? i1.i : null, i2.i] as [A | null, B]);
+    if (!("value" in i2)) return i2;
+    return Items.item(["value" in i1 ? i1.value : null, i2.value] as [
+      A | null,
+      B
+    ]);
   }
 
   #full() {
@@ -72,28 +78,30 @@ export class SyncZipStream<A, B, K extends JoinStreamKind> extends SyncStream<
       i1 = Items.done;
     } else {
       i1 = this.#as.nextItem();
-      if ("d" in i1) this.#aexhausted = true;
-      if ("e" in i1) return i1;
+      if ("done" in i1) this.#aexhausted = true;
+      if ("error" in i1) return i1;
     }
     let i2: StreamItem<B>;
     if (this.#bexhausted) {
       i2 = Items.done;
     } else {
       i2 = this.#bs.nextItem();
-      if ("d" in i2) this.#bexhausted = true;
-      if ("e" in i2) return i2;
+      if ("done" in i2) this.#bexhausted = true;
+      if ("error" in i2) return i2;
     }
     if (this.#aexhausted && this.#bexhausted) return Items.done;
-    return Items.item(["i" in i1 ? i1.i : null, "i" in i2 ? i2.i : null] as
-      | [A, B]
-      | [A, null]
-      | [null, B]);
+    return Items.item([
+      "value" in i1 ? i1.value : null,
+      "value" in i2 ? i2.value : null,
+    ] as [A, B] | [A, null] | [null, B]);
   }
 }
 
-export class AsyncZipStream<A, B, K extends JoinStreamKind> extends AsyncStream<
-  JoinStreamReturnType<A, B, K>
-> {
+export class AsyncJoinStream<
+  A,
+  B,
+  K extends JoinStreamKind
+> extends AsyncStream<JoinStreamReturnType<A, B, K>> {
   #aexhausted = false;
   #bexhausted = false;
   #next;
@@ -121,24 +129,27 @@ export class AsyncZipStream<A, B, K extends JoinStreamKind> extends AsyncStream<
 
   async #inner() {
     const i1 = await this.#as.nextItem();
-    if (!("i" in i1)) return i1;
+    if (!("value" in i1)) return i1;
     const i2 = await this.#bs.nextItem();
-    if (!("i" in i2)) return i2;
-    return Items.item([i1.i, i2.i] as [A, B]);
+    if (!("value" in i2)) return i2;
+    return Items.item([i1.value, i2.value] as [A, B]);
   }
 
   async #left() {
     const i1 = await this.#as.nextItem();
-    if (!("i" in i1)) return i1;
+    if (!("value" in i1)) return i1;
     let i2: StreamItem<B>;
     if (this.#bexhausted) {
       i2 = Items.done;
     } else {
       i2 = await this.#bs.nextItem();
-      if ("d" in i2) this.#bexhausted = true;
-      if ("e" in i2) return i2;
+      if ("done" in i2) this.#bexhausted = true;
+      if ("error" in i2) return i2;
     }
-    return Items.item([i1.i, "i" in i2 ? i2.i : null] as [A, B | null]);
+    return Items.item([i1.value, "value" in i2 ? i2.value : null] as [
+      A,
+      B | null
+    ]);
   }
 
   async #right() {
@@ -147,12 +158,15 @@ export class AsyncZipStream<A, B, K extends JoinStreamKind> extends AsyncStream<
       i1 = Items.done;
     } else {
       i1 = await this.#as.nextItem();
-      if ("d" in i1) this.#aexhausted = true;
-      if ("e" in i1) return i1;
+      if ("done" in i1) this.#aexhausted = true;
+      if ("error" in i1) return i1;
     }
     const i2 = await this.#bs.nextItem();
-    if (!("i" in i2)) return i2;
-    return Items.item(["i" in i1 ? i1.i : null, i2.i] as [A | null, B]);
+    if (!("value" in i2)) return i2;
+    return Items.item(["value" in i1 ? i1.value : null, i2.value] as [
+      A | null,
+      B
+    ]);
   }
 
   async #full() {
@@ -161,21 +175,21 @@ export class AsyncZipStream<A, B, K extends JoinStreamKind> extends AsyncStream<
       i1 = Items.done;
     } else {
       i1 = await this.#as.nextItem();
-      if ("d" in i1) this.#aexhausted = true;
-      if ("e" in i1) return i1;
+      if ("done" in i1) this.#aexhausted = true;
+      if ("error" in i1) return i1;
     }
     let i2: StreamItem<B>;
     if (this.#bexhausted) {
       i2 = Items.done;
     } else {
       i2 = await this.#bs.nextItem();
-      if ("d" in i2) this.#bexhausted = true;
-      if ("e" in i2) return i2;
+      if ("done" in i2) this.#bexhausted = true;
+      if ("error" in i2) return i2;
     }
     if (this.#aexhausted && this.#bexhausted) return Items.done;
-    return Items.item(["i" in i1 ? i1.i : null, "i" in i2 ? i2.i : null] as
-      | [A, B]
-      | [A, null]
-      | [null, B]);
+    return Items.item([
+      "value" in i1 ? i1.value : null,
+      "value" in i2 ? i2.value : null,
+    ] as [A, B] | [A, null] | [null, B]);
   }
 }

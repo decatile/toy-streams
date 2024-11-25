@@ -21,13 +21,13 @@ export class SyncFlatMapStream<T, T1> extends SyncStream<T1> {
         while (1) {
           if (!this.#current) {
             const item = this.#stream.nextItem();
-            if (!("i" in item)) return item;
-            const it = this.#fn(item.i);
+            if (!("value" in item)) return item;
+            const it = this.#fn(item.value);
             this.#current = Symbol.iterator in it ? it[Symbol.iterator]() : it;
           }
         }
         const item = Items.from(this.#current!.next());
-        if (!("d" in item)) return item;
+        if (!("done" in item)) return item;
         this.#current = null;
       } catch (e) {
         return Items.error(e);
@@ -55,8 +55,8 @@ export  class AsyncFlatMapStream<T, T1> extends AsyncStream<T1> {
         while (1) {
           if (!this.#current) {
             const item = await this.#stream.nextItem();
-            if (!("i" in item)) return item;
-            const it = await this.#fn(item.i);
+            if (!("value" in item)) return item;
+            const it = await this.#fn(item.value);
             this.#current =
               Symbol.iterator in it
                 ? it[Symbol.iterator]()
@@ -66,7 +66,7 @@ export  class AsyncFlatMapStream<T, T1> extends AsyncStream<T1> {
           }
         }
         const item = Items.from(await this.#current!.next());
-        if (!("d" in item)) return item;
+        if (!("done" in item)) return item;
         this.#current = null;
       } catch (e) {
         return Items.error(e);

@@ -21,7 +21,7 @@ export class SyncWindowStream<T> extends SyncStream<T> {
   nextItem(): StreamItem<T> {
     while (this.#skip) {
       const item = this.#stream.nextItem();
-      if (!("i" in item)) return item;
+      if (!("value" in item)) return item;
       this.#skip--;
     }
     if (this.#take === undefined) {
@@ -29,7 +29,7 @@ export class SyncWindowStream<T> extends SyncStream<T> {
     }
     if (!this.#take) return Items.done;
     const item = this.#stream.nextItem();
-    if ("i" in item) this.#take--;
+    if ("value" in item) this.#take--;
     return item;
   }
 }
@@ -53,7 +53,7 @@ export class AsyncWindowStream<T> extends AsyncStream<T> {
   async nextItem(): Promise<StreamItem<T>> {
     while (this.#skip) {
       const item = await this.#stream.nextItem();
-      if (!("i" in item)) return item;
+      if (!("value" in item)) return item;
       this.#skip--;
     }
     if (this.#take === undefined) {
@@ -61,7 +61,7 @@ export class AsyncWindowStream<T> extends AsyncStream<T> {
     }
     if (!this.#take) return Items.done;
     const item = await this.#stream.nextItem();
-    if ("i" in item) this.#take--;
+    if ("value" in item) this.#take--;
     return item;
   }
 }
