@@ -3,7 +3,7 @@
       "target": "ES2018",                // Set the target ECMAScript version (e.g., ES5, ES6, etc.)
       "module": "ESNext",             // Use the appropriate module system (e.g., CommonJS, ESNext, etc.)
       "declaration": true,            // Generate .d.ts files
-      "declarationDir": "./types",    // Specify where to output the declaration files
+      "declarationDir": "./dist",    // Specify where to output the declaration files
       "outDir": "./dist",             // Specify where to output the compiled .js files
       "strict": true,                 // Enable strict type-checking options
       "esModuleInterop": true,        // Ensure compatibility with CommonJS modules
