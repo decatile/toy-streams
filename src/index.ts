@@ -7,11 +7,12 @@ import {
 } from "./combinators/from-iterator";
 import { GatherIterableStream } from "./combinators/gather";
 import { SyncIterateStream, AsyncIterateStream } from "./combinators/iterate";
+import { SyncIntoAsyncStreamAdapter } from "./combinators/sync-as-async";
 import { AsyncStreamOps, SyncStreamOps } from "./ops";
-import { AnyItera, Promising } from "./types";
+import { AnyItera, Promising, StreamItem } from "./types";
 import { intoIter } from "./utils";
 
-export { SyncStream, AsyncStream } from "./base";
+export { SyncStream, AsyncStream, StreamItem };
 
 export class Stream {
   /**
@@ -108,6 +109,16 @@ export class Stream {
     init: A
   ): AsyncStreamOps<T> {
     return new AsyncStreamOps(new AsyncIterateStream(fn, init));
+  }
+
+  static ops<T>(stream: SyncStream<T>): SyncStreamOps<T>;
+  static ops<T>(stream: AsyncStream<T>): AsyncStreamOps<T>;
+  static ops(stream: any): any {
+    if (stream.sync) {
+      return new SyncStreamOps(stream);
+    } else {
+      return new AsyncStreamOps(new SyncIntoAsyncStreamAdapter(stream));
+    }
   }
 }
 
