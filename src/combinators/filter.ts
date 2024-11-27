@@ -1,5 +1,5 @@
 import { AsyncStream, SyncStream } from "../base";
-import { StreamItem } from "../types";
+import { Promising, StreamItem } from "../types";
 import { Items } from "../utils";
 
 export class SyncFilterStream<T> extends SyncStream<T> {
@@ -29,10 +29,7 @@ export class AsyncFilterStream<T> extends AsyncStream<T> {
   #stream;
   #fn;
 
-  constructor(
-    stream: AsyncStream<T>,
-    fn: (a: T) => boolean | Promise<boolean>
-  ) {
+  constructor(stream: AsyncStream<T>, fn: (a: T) => Promising<boolean>) {
     super();
     this.#stream = stream;
     this.#fn = fn;

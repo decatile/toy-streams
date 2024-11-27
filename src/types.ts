@@ -1,5 +1,3 @@
-export type Either<A, B> = { left: A } | { right: B };
-
 export type StreamItem<T> = { value: T } | { error: unknown } | { done: true };
 
 export type AnyItera<T> =
@@ -16,3 +14,5 @@ export type JoinStreamReturnType<A, B, K extends JoinStreamKind> = {
   right: [A | null, B];
   full: [A, B] | [A, null] | [null, B];
 }[K];
+
+export type Promising<T> = T | Promise<T>;

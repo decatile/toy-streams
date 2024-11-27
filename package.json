@@ -2,13 +2,18 @@
   "name": "toy-streams",
   "version": "1.0.12",
   "description": "Zero-dependency streams",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
+  "exports": {
+    ".": {
+      "import": "./dist/mjs/index.js",
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "rimraf dist && tsc -p tsconfig.cjs.json && tsc -p tsconfig.mjs.json && node alias.mjs",
     "prepare": "npm run build"
   },
   "repository": {
@@ -22,6 +27,8 @@
   },
   "homepage": "https://github.com/decatile/toy-streams#readme",
   "devDependencies": {
-    "typescript": "^5.7.2"
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.2",
+    "tsc-alias": "^1.8.10"
   }
 }

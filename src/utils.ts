@@ -1,14 +1,5 @@
 import type { AnyItera, StreamItem } from "./types";
 
-export const Eithers = Object.freeze({
-  left: <A, B>(x: A) => ({
-    left: x,
-  }),
-  right: <A, B>(x: B) => ({
-    right: x,
-  }),
-});
-
 export const Items = Object.freeze({
   done: { done: true as const },
   item: <T>(value: T) => ({ value }),

@@ -1,17 +1,18 @@
 {
   "compilerOptions": {
     "target": "ES2018", // Set the target ECMAScript version (e.g., ES5, ES6, etc.)
-    "module": "CommonJS", // Use the appropriate module system (e.g., CommonJS, ESNext, etc.)
     "declaration": true, // Generate .d.ts files
-    "declarationDir": "./dist", // Specify where to output the declaration files
-    "outDir": "./dist", // Specify where to output the compiled .js files
     "strict": true, // Enable strict type-checking options
     "esModuleInterop": true, // Ensure compatibility with CommonJS modules
     "skipLibCheck": true, // Skip type checking of declaration files
-    "sourceMap": true, // Generate source maps for debugging,
+    "declarationDir": "./dist/types", // Specify where to output the declaration files
     "lib": ["ES2018", "DOM"]
   },
   "include": [
     "src/**/*" // Specify the files to include (e.g., your TypeScript source files)
-  ]
+  ],
+  "tsc-alias": {
+    "resolveFullPaths": true,
+    "verbose": false
+  }
 }

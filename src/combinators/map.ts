@@ -1,5 +1,5 @@
 import { AsyncStream, SyncStream } from "../base";
-import { StreamItem } from "../types";
+import { Promising, StreamItem } from "../types";
 import { Items } from "../utils";
 
 export class SyncMapStream<T, T1> extends SyncStream<T1> {
@@ -27,7 +27,7 @@ export class AsyncMapStream<T, T1> extends AsyncStream<T1> {
   #stream;
   #fn;
 
-  constructor(stream: AsyncStream<T>, fn: (a: T) => T1 | Promise<T1>) {
+  constructor(stream: AsyncStream<T>, fn: (a: T) => Promising<T1>) {
     super();
     this.#stream = stream;
     this.#fn = fn;
