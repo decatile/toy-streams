@@ -13,7 +13,7 @@ import { intoIter } from "./utils";
 
 export { SyncStream, AsyncStream } from "./base";
 
-export default class Stream {
+export class Stream {
   /**
    * @param error An error that will be returned after requesting the item
    * @returns A stream that always fails. Similar to throwing an exception when processing the first element
@@ -110,3 +110,5 @@ export default class Stream {
     return new AsyncStreamOps(new AsyncIterateStream(fn, init));
   }
 }
+
+export default Stream;
