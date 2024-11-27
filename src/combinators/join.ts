@@ -127,25 +127,43 @@ export class AsyncJoinStream<
     return this.#next() as any;
   }
 
+  async #leftAwaiter() {
+    if (this.#aexhausted) {
+      return Items.done;
+    } else {
+      const r = await this.#as.nextItem();
+      if ("done" in r) this.#aexhausted = true;
+      return r;
+    }
+  }
+
+  async #rightAwaiter() {
+    if (this.#bexhausted) {
+      return Items.done;
+    } else {
+      const r = await this.#bs.nextItem();
+      if ("done" in r) this.#bexhausted = true;
+      return r;
+    }
+  }
+
   async #inner() {
-    const i1 = await this.#as.nextItem();
+    const [i1, i2] = await Promise.all([
+      this.#as.nextItem(),
+      this.#bs.nextItem(),
+    ]);
     if (!("value" in i1)) return i1;
-    const i2 = await this.#bs.nextItem();
     if (!("value" in i2)) return i2;
     return Items.item([i1.value, i2.value] as [A, B]);
   }
 
   async #left() {
-    const i1 = await this.#as.nextItem();
+    const [i1, i2] = await Promise.all([
+      this.#as.nextItem(),
+      this.#rightAwaiter(),
+    ]);
     if (!("value" in i1)) return i1;
-    let i2: StreamItem<B>;
-    if (this.#bexhausted) {
-      i2 = Items.done;
-    } else {
-      i2 = await this.#bs.nextItem();
-      if ("done" in i2) this.#bexhausted = true;
-      if ("error" in i2) return i2;
-    }
+    if ("error" in i2) return i2;
     return Items.item([i1.value, "value" in i2 ? i2.value : null] as [
       A,
       B | null
@@ -153,15 +171,11 @@ export class AsyncJoinStream<
   }
 
   async #right() {
-    let i1;
-    if (this.#aexhausted) {
-      i1 = Items.done;
-    } else {
-      i1 = await this.#as.nextItem();
-      if ("done" in i1) this.#aexhausted = true;
-      if ("error" in i1) return i1;
-    }
-    const i2 = await this.#bs.nextItem();
+    const [i1, i2] = await Promise.all([
+      this.#leftAwaiter(),
+      this.#bs.nextItem(),
+    ]);
+    if ("error" in i1) return i1;
     if (!("value" in i2)) return i2;
     return Items.item(["value" in i1 ? i1.value : null, i2.value] as [
       A | null,
@@ -170,26 +184,18 @@ export class AsyncJoinStream<
   }
 
   async #full() {
-    let i1;
-    if (this.#aexhausted) {
-      i1 = Items.done;
-    } else {
-      i1 = await this.#as.nextItem();
-      if ("done" in i1) this.#aexhausted = true;
-      if ("error" in i1) return i1;
+    const [i1, i2] = await Promise.all([
+      this.#leftAwaiter(),
+      this.#rightAwaiter(),
+    ]);
+    if ("error" in i1) return i1;
+    if ("error" in i2) return i2;
+    if ("value" in i1 || "value" in i2) {
+      return Items.item([
+        "value" in i1 ? i1.value : null,
+        "value" in i2 ? i2.value : null,
+      ] as [A, B] | [A, null] | [null, B]);
     }
-    let i2: StreamItem<B>;
-    if (this.#bexhausted) {
-      i2 = Items.done;
-    } else {
-      i2 = await this.#bs.nextItem();
-      if ("done" in i2) this.#bexhausted = true;
-      if ("error" in i2) return i2;
-    }
-    if (this.#aexhausted && this.#bexhausted) return Items.done;
-    return Items.item([
-      "value" in i1 ? i1.value : null,
-      "value" in i2 ? i2.value : null,
-    ] as [A, B] | [A, null] | [null, B]);
+    return Items.done;
   }
 }

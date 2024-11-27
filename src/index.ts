@@ -111,6 +111,10 @@ export class Stream {
     return new AsyncStreamOps(new AsyncIterateStream(fn, init));
   }
 
+  /**
+   * @param stream Underlying stream
+   * @returns A stream-like object with a set of utility methods
+   */
   static ops<T>(stream: SyncStream<T>): SyncStreamOps<T>;
   static ops<T>(stream: AsyncStream<T>): AsyncStreamOps<T>;
   static ops(stream: any): any {
