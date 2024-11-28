@@ -121,7 +121,7 @@ export class Stream {
     if (stream.sync) {
       return new SyncStreamOps(stream);
     } else {
-      return new AsyncStreamOps(new SyncIntoAsyncStreamAdapter(stream));
+      return new AsyncStreamOps(stream);
     }
   }
 }

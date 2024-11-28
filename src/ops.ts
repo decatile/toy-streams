@@ -40,7 +40,9 @@ export class SyncStreamOps<T> extends SyncStream<T> {
    * @returns An asynchronous stream simular to SyncStream.map, but function returns promise instead of pure value
    */
   mapAsync<T1>(fn: (a: T) => Promise<T1>): AsyncStreamOps<T1> {
-    return new AsyncStreamOps(new AsyncMapStream(this.async(), fn));
+    return new AsyncStreamOps(
+      new AsyncMapStream(new SyncIntoAsyncStreamAdapter(this), fn)
+    );
   }
 
   /**
@@ -56,7 +58,9 @@ export class SyncStreamOps<T> extends SyncStream<T> {
    * @returns An asynchronous stream simular to SyncStream.flatMap, but function returns promise instead of pure value
    */
   flatMapAsync<T1>(fn: (a: T) => Promise<AnyItera<T1>>): AsyncStreamOps<T1> {
-    return new AsyncStreamOps(new AsyncFlatMapStream(this.async(), fn));
+    return new AsyncStreamOps(
+      new AsyncFlatMapStream(new SyncIntoAsyncStreamAdapter(this), fn)
+    );
   }
 
   /**
@@ -71,7 +75,9 @@ export class SyncStreamOps<T> extends SyncStream<T> {
    * @returns An asynchronous stream simular to SyncStream.filter, buf function returns promise instead of pure value
    */
   filterAsync(fn: (a: T) => Promise<boolean>): AsyncStreamOps<T> {
-    return new AsyncStreamOps(new AsyncFilterStream(this.async(), fn));
+    return new AsyncStreamOps(
+      new AsyncFilterStream(new SyncIntoAsyncStreamAdapter(this), fn)
+    );
   }
 
   /**
@@ -114,7 +120,9 @@ export class SyncStreamOps<T> extends SyncStream<T> {
    * @returns An asynchronous stream that delay every yield by `ms` milliseconds
    */
   delayed(ms: number): AsyncStreamOps<T> {
-    return new AsyncStreamOps(new AsyncDelayedStream(this.async(), ms));
+    return new AsyncStreamOps(
+      new AsyncDelayedStream(new SyncIntoAsyncStreamAdapter(this), ms)
+    );
   }
 
   /**
@@ -127,7 +135,9 @@ export class SyncStreamOps<T> extends SyncStream<T> {
     if (other.sync) {
       return new SyncStreamOps(new SyncExtendStream(this, other));
     } else {
-      return new AsyncStreamOps(new AsyncExtendStream(this.async(), other));
+      return new AsyncStreamOps(
+        new AsyncExtendStream(new SyncIntoAsyncStreamAdapter(this), other)
+      );
     }
   }
 
@@ -210,7 +220,9 @@ export class SyncStreamOps<T> extends SyncStream<T> {
     if (other.sync) {
       return new SyncStreamOps(new SyncJoinStream(this, other, join));
     } else {
-      return new AsyncStreamOps(new AsyncJoinStream(this.async(), other, join));
+      return new AsyncStreamOps(
+        new AsyncJoinStream(new SyncIntoAsyncStreamAdapter(this), other, join)
+      );
     }
   }
 
