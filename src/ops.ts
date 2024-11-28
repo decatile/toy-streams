@@ -4,6 +4,7 @@ import { AsyncDelayedStream } from "./combinators/delayed";
 import { SyncExtendStream, AsyncExtendStream } from "./combinators/extend";
 import { SyncFilterStream, AsyncFilterStream } from "./combinators/filter";
 import { SyncFlatMapStream, AsyncFlatMapStream } from "./combinators/flatmap";
+import { AsyncFlattenStream, SyncFlattenStream } from "./combinators/flatten";
 import { SyncJoinStream, AsyncJoinStream } from "./combinators/join";
 import { SyncMapStream, AsyncMapStream } from "./combinators/map";
 import {
@@ -16,6 +17,7 @@ import {
   AnyItera,
   AnyOps,
   AnyStream,
+  ExtendsOrNever,
   JoinStreamKind,
   JoinStreamReturnType,
   Promising,
@@ -238,6 +240,15 @@ export class SyncStreamOps<T> extends SyncStream<T> {
     }
   }
 
+  /**
+   * @returns A stream that returns each element of each stream that returns the stream is passed as an argument
+   */
+  flatten<T, Self extends this>(
+    this: ExtendsOrNever<SyncStream<SyncStream<any>>, Self>
+  ): SyncStreamOps<T> {
+    return new SyncStreamOps(new SyncFlattenStream(this));
+  }
+
   collect(): T[] {
     const r = [];
     for (const x of this) r.push(x);
@@ -409,6 +420,15 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
         kind
       )
     );
+  }
+
+  /**
+   * @returns A stream that returns each element of each stream that returns the stream is passed as an argument
+   */
+  flatten<T, Self extends this>(
+    this: ExtendsOrNever<AsyncStream<AnyStream<any>>, Self>
+  ): AsyncStreamOps<T> {
+    return new AsyncStreamOps(new AsyncFlattenStream(this));
   }
 
   async collect(): Promise<T[]> {

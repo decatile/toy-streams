@@ -1,6 +1,5 @@
 import { SyncStream, AsyncStream } from "./base";
 import { SyncFailStream } from "./combinators/fail";
-import { SyncFlattenStream, AsyncFlattenStream } from "./combinators/flatten";
 import {
   SyncIterableStream,
   AsyncIterableStream,
@@ -50,22 +49,6 @@ export class Stream {
    */
   static gather<T>(it: AnyItera<Promise<T>>): AsyncStreamOps<T> {
     return new AsyncStreamOps(new GatherIterableStream(intoIter(it)));
-  }
-
-  /**
-   * @param it Stream of streams
-   * @returns A stream that returns each element of each stream that returns the stream is passed as an argument
-   */
-  static flatten<T>(it: SyncStream<SyncStream<T>>): SyncStreamOps<T>;
-  static flatten<T>(it: AsyncStream<AnyStream<T>>): AsyncStreamOps<T>;
-  static flatten<T>(
-    it: SyncStream<SyncStream<T>> | AsyncStream<AnyStream<T>>
-  ): AnyOps<T> {
-    if (it.sync) {
-      return new SyncStreamOps(new SyncFlattenStream(it));
-    } else {
-      return new AsyncStreamOps(new AsyncFlattenStream(it));
-    }
   }
 
   /**

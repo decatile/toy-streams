@@ -13,6 +13,8 @@ export type AnyItera<T> =
   | AsyncIterable<T>
   | AsyncIterator<T>;
 
+export type ExtendsOrNever<E, A> = A extends E ? A : never;
+
 export type JoinStreamKind = "inner" | "left" | "right" | "full";
 
 export type JoinStreamReturnType<A, B, K extends JoinStreamKind> = {
