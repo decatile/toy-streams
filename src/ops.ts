@@ -14,6 +14,8 @@ import { SyncIntoAsyncStreamAdapter } from "./combinators/sync-as-async";
 import { AsyncWindowStream, SyncWindowStream } from "./combinators/window";
 import {
   AnyItera,
+  AnyOps,
+  AnyStream,
   JoinStreamKind,
   JoinStreamReturnType,
   Promising,
@@ -125,18 +127,25 @@ export class SyncStreamOps<T> extends SyncStream<T> {
     );
   }
 
+  #arrayOfStreamsIsSync(array: AnyStream<T>[]): array is SyncStream<T>[] {
+    return !array.some((x) => !x.sync);
+  }
+
   /**
    * @param other An another stream to be merged
    * @returns A stream which firstly yields all elements from underlying stream, then from `other` stream
    */
-  extend(other: SyncStreamOps<T>): SyncStreamOps<T>;
-  extend(other: AsyncStreamOps<T>): AsyncStreamOps<T>;
-  extend(other: any): any {
-    if (other.sync) {
-      return new SyncStreamOps(new SyncExtendStream(this, other));
+  extend(...others: SyncStream<T>[]): SyncStreamOps<T>;
+  extend(...others: AnyStream<T>[]): AsyncStreamOps<T>;
+  extend(...others: AnyStream<T>[]): AnyOps<T> {
+    if (this.#arrayOfStreamsIsSync(others)) {
+      return new SyncStreamOps(new SyncExtendStream(this, ...others));
     } else {
       return new AsyncStreamOps(
-        new AsyncExtendStream(new SyncIntoAsyncStreamAdapter(this), other)
+        new AsyncExtendStream(
+          new SyncIntoAsyncStreamAdapter(this),
+          ...others.map((x) => (x.sync ? new SyncIntoAsyncStreamAdapter(x) : x))
+        )
       );
     }
   }
@@ -209,14 +218,17 @@ export class SyncStreamOps<T> extends SyncStream<T> {
    * @param kind Join kind, see its type
    */
   join<T1, K extends JoinStreamKind>(
-    other: SyncStreamOps<T1>,
+    other: SyncStream<T1>,
     join: K
   ): SyncStreamOps<JoinStreamReturnType<T, T1, K>>;
   join<T1, K extends JoinStreamKind>(
-    other: AsyncStreamOps<T1>,
+    other: AsyncStream<T1>,
     join: K
   ): AsyncStreamOps<JoinStreamReturnType<T, T1, K>>;
-  join(other: any, join: any): any {
+  join<T1, K extends JoinStreamKind>(
+    other: AnyStream<T1>,
+    join: K
+  ): AnyOps<JoinStreamReturnType<T, T1, K>> {
     if (other.sync) {
       return new SyncStreamOps(new SyncJoinStream(this, other, join));
     } else {
@@ -317,11 +329,11 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
    * @param other An another stream to be merged
    * @returns A stream which firstly yields all elements from underlying stream, then from `other` stream
    */
-  extend(other: SyncStream<T> | AsyncStream<T>): AsyncStreamOps<T> {
+  extend(...others: AnyStream<T>[]): AsyncStreamOps<T> {
     return new AsyncStreamOps(
       new AsyncExtendStream(
         this,
-        other.sync ? new SyncIntoAsyncStreamAdapter(other) : other
+        ...others.map((x) => (x.sync ? new SyncIntoAsyncStreamAdapter(x) : x))
       )
     );
   }
@@ -387,7 +399,7 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
    * @param kind Join kind, see its type
    */
   join<T1, K extends JoinStreamKind>(
-    other: SyncStream<T1> | AsyncStreamOps<T1>,
+    other: AnyStream<T1>,
     kind: K
   ): AsyncStreamOps<JoinStreamReturnType<T, T1, K>> {
     return new AsyncStreamOps(

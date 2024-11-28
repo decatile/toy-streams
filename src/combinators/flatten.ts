@@ -1,5 +1,5 @@
 import { SyncStream, AsyncStream } from "../base";
-import { StreamItem } from "../types";
+import { AnyStream, StreamItem } from "../types";
 import { SyncIntoAsyncStreamAdapter } from "./sync-as-async";
 
 export class SyncFlattenStream<T> extends SyncStream<T> {
@@ -30,7 +30,7 @@ export class AsyncFlattenStream<T> extends AsyncStream<T> {
   #current: AsyncStream<T> | null = null;
   #stream;
 
-  constructor(stream: AsyncStream<SyncStream<T> | AsyncStream<T>>) {
+  constructor(stream: AsyncStream<AnyStream<T>>) {
     super();
     this.#stream = stream;
   }

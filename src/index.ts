@@ -7,9 +7,8 @@ import {
 } from "./combinators/from-iterator";
 import { GatherIterableStream } from "./combinators/gather";
 import { SyncIterateStream, AsyncIterateStream } from "./combinators/iterate";
-import { SyncIntoAsyncStreamAdapter } from "./combinators/sync-as-async";
 import { AsyncStreamOps, SyncStreamOps } from "./ops";
-import { AnyItera, Promising, StreamItem } from "./types";
+import { AnyItera, AnyOps, AnyStream, Promising, StreamItem } from "./types";
 import { intoIter } from "./utils";
 
 export { SyncStream, AsyncStream, StreamItem };
@@ -58,10 +57,10 @@ export class Stream {
    * @returns A stream that returns each element of each stream that returns the stream is passed as an argument
    */
   static flatten<T>(it: SyncStream<SyncStream<T>>): SyncStreamOps<T>;
+  static flatten<T>(it: AsyncStream<AnyStream<T>>): AsyncStreamOps<T>;
   static flatten<T>(
-    it: AsyncStream<SyncStream<T> | AsyncStream<T>>
-  ): AsyncStreamOps<T>;
-  static flatten(it: any): any {
+    it: SyncStream<SyncStream<T>> | AsyncStream<AnyStream<T>>
+  ): AnyOps<T> {
     if (it.sync) {
       return new SyncStreamOps(new SyncFlattenStream(it));
     } else {
@@ -117,7 +116,7 @@ export class Stream {
    */
   static ops<T>(stream: SyncStream<T>): SyncStreamOps<T>;
   static ops<T>(stream: AsyncStream<T>): AsyncStreamOps<T>;
-  static ops(stream: any): any {
+  static ops<T>(stream: AnyStream<T>): AnyOps<T> {
     if (stream.sync) {
       return new SyncStreamOps(stream);
     } else {

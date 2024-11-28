@@ -1,14 +1,15 @@
 import { SyncStream, AsyncStream } from "../base";
 import { StreamItem } from "../types";
 import { Items } from "../utils";
+import { SyncIntoAsyncStreamAdapter } from "./sync-as-async";
 
 export class SyncExtendStream<T> extends SyncStream<T> {
   #streams: SyncStream<T>[];
   #index: number = 0;
 
-  constructor(s1: SyncStream<T>, s2: SyncStream<T>) {
+  constructor(...streams: SyncStream<T>[]) {
     super();
-    this.#streams = [s1, s2];
+    this.#streams = streams;
   }
 
   nextItem(): StreamItem<T> {
@@ -27,9 +28,9 @@ export class AsyncExtendStream<T> extends AsyncStream<T> {
   #streams: AsyncStream<T>[];
   #index: number = 0;
 
-  constructor(s1: AsyncStream<T>, s2: AsyncStream<T>) {
+  constructor(...streams: AsyncStream<T>[]) {
     super();
-    this.#streams = [s1, s2];
+    this.#streams = streams;
   }
 
   async nextItem(): Promise<StreamItem<T>> {

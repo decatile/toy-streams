@@ -1,4 +1,11 @@
+import type { AsyncStream, SyncStream } from "./base";
+import type { AsyncStreamOps, SyncStreamOps } from "./ops";
+
 export type StreamItem<T> = { value: T } | { error: unknown } | { done: true };
+
+export type AnyStream<T> = SyncStream<T> | AsyncStream<T>;
+
+export type AnyOps<T> = SyncStreamOps<T> | AsyncStreamOps<T>;
 
 export type AnyItera<T> =
   | Iterable<T>
