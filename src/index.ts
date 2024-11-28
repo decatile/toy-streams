@@ -55,8 +55,8 @@ export class Stream {
    * @param value Item that stream will yield infinitely
    * @returns Stream that yields same value
    */
-  static repeat<T>(value: T): SyncStreamOps<T> {
-    return this.iterate((x) => [x, x], value);
+  static repeat<T>(value: () => T): SyncStreamOps<T> {
+    return this.iterate((_) => [value(), _], null);
   }
 
   /**
@@ -72,7 +72,9 @@ export class Stream {
     start?: number;
     step?: number;
   } = {}): SyncStreamOps<number> {
-    return this.iterate((x) => [x, x + (step ?? 1)], start ?? 0);
+    step ??= 1;
+    start ??= 0;
+    return this.iterate((x) => [x, x + step], start);
   }
 
   /**
