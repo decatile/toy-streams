@@ -5,8 +5,10 @@
     "strict": true, // Enable strict type-checking options
     "esModuleInterop": true, // Ensure compatibility with CommonJS modules
     "skipLibCheck": true, // Skip type checking of declaration files
-    "declarationDir": "./dist/types", // Specify where to output the declaration files
-    "lib": ["ES2018", "DOM"]
+    "declarationDir": "./dist", // Specify where to output the declaration files
+    "lib": ["ES2018", "DOM"],
+    "module": "ES6",
+    "outDir": "./dist"
   },
   "include": [
     "src/**/*" // Specify the files to include (e.g., your TypeScript source files)

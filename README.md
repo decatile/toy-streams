@@ -8,8 +8,6 @@ The key concept of the library is `Stream` — a sequence of lazily calculated v
 
 I recommend using **TypeScript** for type correctness, as it's easy to make mistakes when working with functionality of this type.  
 
-The library is released in both **CommonJS** and **ES6** formats.  
-
 ## Installation
 
 First, install the library and import a static object to wrap various values in the stream:
