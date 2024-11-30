@@ -7,10 +7,7 @@ import { SyncFlatMapStream, AsyncFlatMapStream } from "./combinators/flatmap";
 import { AsyncFlattenStream, SyncFlattenStream } from "./combinators/flatten";
 import { SyncJoinStream, AsyncJoinStream } from "./combinators/join";
 import { SyncMapStream, AsyncMapStream } from "./combinators/map";
-import {
-  AsyncMeasureStream,
-  SyncMeasureStream,
-} from "./combinators/measure";
+import { AsyncMeasureStream, SyncMeasureStream } from "./combinators/measure";
 import { SyncIntoAsyncStreamAdapter } from "./combinators/sync-as-async";
 import { AsyncThrottleStream } from "./combinators/throttle";
 import { AsyncWhileStream, SyncWhileStream } from "./combinators/while";
@@ -56,13 +53,19 @@ export class SyncStreamOps<T> extends SyncStream<T> {
   }
 
   /**
-   * @param obj Options object for configuring stream behaviour.
-   * A skip field tells a stream to just consume `n` elements instead yielding them.
-   * A take field tells a stream to yield `n` elements, then end a stream
-   * @returns A stream which contains elements slice configured by `obj` argument
+   * @param amount Tells amount of elements to yield, then signal end-of-stream
+   * @returns A stream with first `<= amount` elements
    */
-  window({ skip, take }: { skip?: number; take?: number }): SyncStreamOps<T> {
-    return new SyncStreamOps(new SyncWindowStream(this, skip, take));
+  take(amount: number): SyncStreamOps<T> {
+    return new SyncStreamOps(new SyncWindowStream(this, "take", amount));
+  }
+
+  /**
+   * @param amount Tells amount of elements to skip, then yield the rest
+   * @returns A stream with last `Math.max(streamLength - amount, 0)` elements
+   */
+  skip(amount: number): SyncStreamOps<T> {
+    return new SyncStreamOps(new SyncWindowStream(this, "skip", amount));
   }
 
   /**
@@ -81,7 +84,7 @@ export class SyncStreamOps<T> extends SyncStream<T> {
    * @param predicate Predicate function
    * @returns An synchronous stream which yields elements while predicate on every of them is truthy
    */
-  takeWhile(predicate: (a: T) => boolean) {
+  takeWhile(predicate: (a: T) => boolean): SyncStreamOps<T> {
     return new SyncStreamOps(
       new SyncWhileStream(this, "take-while", predicate)
     );
@@ -91,7 +94,7 @@ export class SyncStreamOps<T> extends SyncStream<T> {
    * @param predicate Predicate function
    * @returns An synchronous stream which drops elements while predicate on every of them is truthy, then yields the rest
    */
-  dropWhile(predicate: (a: T) => boolean) {
+  dropWhile(predicate: (a: T) => boolean): SyncStreamOps<T> {
     return new SyncStreamOps(
       new SyncWhileStream(this, "drop-while", predicate)
     );
@@ -171,7 +174,7 @@ export class SyncStreamOps<T> extends SyncStream<T> {
    * @param other Other stream meant to be joined
    * @returns A Stream<[T, T1]> which will yield elements while both streams does not exhausted
    */
-  join<T1>(other: SyncStream<T1>) {
+  join<T1>(other: SyncStream<T1>): SyncStreamOps<[T, T1]> {
     return new SyncStreamOps(new SyncJoinStream(this, other, "inner-join"));
   }
 
@@ -179,7 +182,7 @@ export class SyncStreamOps<T> extends SyncStream<T> {
    * @param other Other stream meant to be joined
    * @returns A Stream<[T, T1]> which will yield elements while left stream does not exhausted
    */
-  leftJoin<T1>(other: SyncStream<T1>) {
+  leftJoin<T1>(other: SyncStream<T1>): SyncStreamOps<[T, T1 | null]> {
     return new SyncStreamOps(new SyncJoinStream(this, other, "left-join"));
   }
 
@@ -187,7 +190,7 @@ export class SyncStreamOps<T> extends SyncStream<T> {
    * @param other Other stream meant to be joined
    * @returns A Stream<[T, T1]> which will yield elements while right stream does not exhausted
    */
-  rightJoin<T1>(other: SyncStream<T1>) {
+  rightJoin<T1>(other: SyncStream<T1>): SyncStreamOps<[T | null, T1]> {
     return new SyncStreamOps(new SyncJoinStream(this, other, "right-join"));
   }
 
@@ -195,7 +198,9 @@ export class SyncStreamOps<T> extends SyncStream<T> {
    * @param other Other stream meant to be joined
    * @returns A Stream<[T, T1]> which will yield elements while one of streams does not exhausted
    */
-  fullJoin<T1>(other: SyncStream<T1>) {
+  fullJoin<T1>(
+    other: SyncStream<T1>
+  ): SyncStreamOps<[T, T1] | [T, null] | [null, T1]> {
     return new SyncStreamOps(new SyncJoinStream(this, other, "full-join"));
   }
 
@@ -258,13 +263,19 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
   }
 
   /**
-   * @param obj Options object for configuring stream behaviour.
-   * A skip field tells a stream to just consume `n` elements instead yielding them.
-   * A take field tells a stream to yield `n` elements, then end a stream
-   * @returns A stream which contains elements slice configured by `obj` argument
+   * @param amount Tells amount of elements to yield, then signal end-of-stream
+   * @returns A stream with first `<= amount` elements
    */
-  window({ skip, take }: { skip?: number; take?: number }): AsyncStreamOps<T> {
-    return new AsyncStreamOps(new AsyncWindowStream(this, skip, take));
+  take(amount: number): AsyncStreamOps<T> {
+    return new AsyncStreamOps(new AsyncWindowStream(this, "take", amount));
+  }
+
+  /**
+   * @param amount Tells amount of elements to skip, then yield the rest
+   * @returns A stream with last `Math.max(streamLength - amount, 0)` elements
+   */
+  skip(amount: number): AsyncStreamOps<T> {
+    return new AsyncStreamOps(new AsyncWindowStream(this, "skip", amount));
   }
 
   /**
@@ -308,7 +319,7 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
    * @param predicate Predicate function
    * @returns An synchronous stream which yields elements while predicate on every of them is truthy
    */
-  takeWhile(predicate: (a: T) => Promising<boolean>) {
+  takeWhile(predicate: (a: T) => Promising<boolean>): AsyncStreamOps<T> {
     return new AsyncStreamOps(
       new AsyncWhileStream(this, "take-while", predicate)
     );
@@ -318,7 +329,7 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
    * @param predicate Predicate function
    * @returns An synchronous stream which drops elements while predicate on every of them is truthy, then yields the rest
    */
-  dropWhile(predicate: (a: T) => Promising<boolean>) {
+  dropWhile(predicate: (a: T) => Promising<boolean>): AsyncStreamOps<T> {
     return new AsyncStreamOps(
       new AsyncWhileStream(this, "drop-while", predicate)
     );
@@ -396,7 +407,7 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
    * @param other Other stream meant to be joined
    * @returns A Stream<[T, T1]> which will yield elements while both streams does not exhausted
    */
-  join<T1>(other: AsyncStream<T1>) {
+  join<T1>(other: AsyncStream<T1>): AsyncStreamOps<[T, T1]> {
     return new AsyncStreamOps(new AsyncJoinStream(this, other, "inner-join"));
   }
 
@@ -404,7 +415,7 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
    * @param other Other stream meant to be joined
    * @returns A Stream<[T, T1]> which will yield elements while left stream does not exhausted
    */
-  leftJoin<T1>(other: AsyncStream<T1>) {
+  leftJoin<T1>(other: AsyncStream<T1>): AsyncStreamOps<[T, T1 | null]> {
     return new AsyncStreamOps(new AsyncJoinStream(this, other, "left-join"));
   }
 
@@ -412,7 +423,7 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
    * @param other Other stream meant to be joined
    * @returns A Stream<[T, T1]> which will yield elements while right stream does not exhausted
    */
-  rightJoin<T1>(other: AsyncStream<T1>) {
+  rightJoin<T1>(other: AsyncStream<T1>): AsyncStreamOps<[T | null, T1]> {
     return new AsyncStreamOps(new AsyncJoinStream(this, other, "right-join"));
   }
 
@@ -420,7 +431,9 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
    * @param other Other stream meant to be joined
    * @returns A Stream<[T, T1]> which will yield elements while one of streams does not exhausted
    */
-  fullJoin<T1>(other: AsyncStream<T1>) {
+  fullJoin<T1>(
+    other: AsyncStream<T1>
+  ): AsyncStreamOps<[T, T1] | [T, null] | [null, T1]> {
     return new AsyncStreamOps(new AsyncJoinStream(this, other, "full-join"));
   }
 

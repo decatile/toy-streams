@@ -15,6 +15,8 @@ export type AnyItera<T> =
 
 export type ExtendsOrNever<E, A> = A extends E ? A : never;
 
+export type WindowStreamKind = "take" | "skip";
+
 export type WhileStreamKind = "take-while" | "drop-while";
 
 export type DelayStreamKind = "before-pull" | "after-pull";
