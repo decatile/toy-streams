@@ -1,7 +1,6 @@
 import { SyncStream, AsyncStream } from "../base";
 import { StreamItem } from "../types";
 import { Items } from "../utils";
-import { SyncIntoAsyncStreamAdapter } from "./sync-as-async";
 
 export class SyncExtendStream<T> extends SyncStream<T> {
   #streams: SyncStream<T>[];

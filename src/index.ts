@@ -60,20 +60,19 @@ export class Stream {
   }
 
   /**
-   * @param obj Options object for configuring stream behaviour.
-   * A start field determines first value yielded
-   * A step field determines how changes yielding value yield by yield
+   * @param value Item that stream will yield infinitely
+   * @returns Stream that yields same value
+   */
+  static repeatAsync<T>(value: () => Promise<T>): AsyncStreamOps<T> {
+    return this.iterateAsync((_) => value().then((x) => [x, _]), null);
+  }
+
+  /**
+   * @param start Field determines first value yielded
+   * @param step Field determines how changes yielding value yield by yield
    * @returns An infinite stream that yield items, each subsequent one of which is greater than the previous one by `step`, starts at `start`
    */
-  static count({
-    start,
-    step,
-  }: {
-    start?: number;
-    step?: number;
-  } = {}): SyncStreamOps<number> {
-    step ??= 1;
-    start ??= 0;
+  static count(start: number = 0, step: number = 1): SyncStreamOps<number> {
     return this.iterate((x) => [x, x + step], start);
   }
 

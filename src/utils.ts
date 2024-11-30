@@ -10,7 +10,7 @@ export const Items = Object.freeze({
     if ("value" in item) {
       return { done: false as const, ...item };
     }
-    if ("done" in item) return item as IteratorResult<any>;
+    if ("done" in item) return item as IteratorResult<T>;
     throw item.error;
   },
 });

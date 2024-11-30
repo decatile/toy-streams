@@ -2,16 +2,11 @@ import { AsyncStream, SyncStream } from "../base";
 import { Promising, StreamItem, WhileStreamKind } from "../types";
 import { Items } from "../utils";
 
-const DROP = 0;
-const DROP_ITEM = 1;
-const NO_DROP = 2;
-
 export class SyncWhileStream<T> extends SyncStream<T> {
   #predicate;
   #stream;
   #next;
-  #done = DROP;
-  #buf = null as StreamItem<T> | null;
+  #done = false;
 
   constructor(
     stream: SyncStream<T>,
@@ -25,24 +20,20 @@ export class SyncWhileStream<T> extends SyncStream<T> {
   }
 
   nextItem(): StreamItem<T> {
-    return this.#next() as any;
+    return this.#next() as StreamItem<T>;
   }
 
   #drop() {
-    switch (this.#done) {
-      case DROP:
-        let item: StreamItem<T>;
-        do {
-          item = this.#stream.nextItem();
-          if (!("value" in item)) return item;
-        } while (this.#predicate(item.value));
-        this.#done = DROP_ITEM;
-        this.#buf = item;
-      case DROP_ITEM:
-        this.#done = NO_DROP;
-        return this.#buf!;
-      case NO_DROP:
-        return this.#stream.nextItem();
+    if (!this.#done) {
+      let item: StreamItem<T>;
+      do {
+        item = this.#stream.nextItem();
+        if (!("value" in item)) return item;
+      } while (this.#predicate(item.value));
+      this.#done = true;
+      return item;
+    } else {
+      return this.#stream.nextItem();
     }
   }
 
@@ -58,8 +49,7 @@ export class AsyncWhileStream<T> extends AsyncStream<T> {
   #predicate;
   #stream;
   #next;
-  #done = DROP;
-  #buf = null as StreamItem<T> | null;
+  #done = false;
 
   constructor(
     stream: AsyncStream<T>,
@@ -73,24 +63,20 @@ export class AsyncWhileStream<T> extends AsyncStream<T> {
   }
 
   nextItem(): Promise<StreamItem<T>> {
-    return this.#next() as any;
+    return this.#next() as Promise<StreamItem<T>>;
   }
 
   async #drop() {
-    switch (this.#done) {
-      case DROP:
-        let item: StreamItem<T>;
-        do {
-          item = await this.#stream.nextItem();
-          if (!("value" in item)) return item;
-        } while (await this.#predicate(item.value));
-        this.#done = DROP_ITEM;
-        this.#buf = item;
-      case DROP_ITEM:
-        this.#done = NO_DROP;
-        return Items.item(this.#buf!);
-      case NO_DROP:
-        return this.#stream.nextItem();
+    if (!this.#done) {
+      let item: StreamItem<T>;
+      do {
+        item = await this.#stream.nextItem();
+        if (!("value" in item)) return item;
+      } while (await this.#predicate(item.value));
+      this.#done = true;
+      return item;
+    } else {
+      return this.#stream.nextItem();
     }
   }
 

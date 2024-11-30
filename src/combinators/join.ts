@@ -27,7 +27,7 @@ export class SyncJoinStream<A, B, K extends JoinStreamKind> extends SyncStream<
   }
 
   nextItem(): StreamItem<JoinStreamReturnType<A, B, K>> {
-    return this.#next() as any;
+    return this.#next() as StreamItem<JoinStreamReturnType<A, B, K>>;
   }
 
   #inner() {
@@ -124,7 +124,7 @@ export class AsyncJoinStream<
   }
 
   nextItem(): Promise<StreamItem<JoinStreamReturnType<A, B, K>>> {
-    return this.#next() as any;
+    return this.#next() as Promise<StreamItem<JoinStreamReturnType<A, B, K>>>;
   }
 
   async #leftAwaiter() {

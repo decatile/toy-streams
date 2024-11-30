@@ -31,7 +31,7 @@ export class SyncWindowStream<T> extends SyncStream<T> {
   }
 
   nextItem(): StreamItem<T> {
-    return this.#next() as any;
+    return this.#next() as StreamItem<T>;
   }
 }
 
@@ -64,6 +64,6 @@ export class AsyncWindowStream<T> extends AsyncStream<T> {
   }
 
   async nextItem(): Promise<StreamItem<T>> {
-    return this.#next() as any;
+    return this.#next() as Promise<StreamItem<T>>;
   }
 }

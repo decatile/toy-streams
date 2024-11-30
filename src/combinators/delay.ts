@@ -9,12 +9,14 @@ export class AsyncDelayStream<T> extends AsyncStream<T> {
   constructor(stream: AsyncStream<T>, kind: DelayStreamKind, ms: number) {
     super();
     this.#stream = stream;
-    this.#next = (kind === "before-pull" ? this.#before : this.#after).bind(this);
+    this.#next = (kind === "before-pull" ? this.#before : this.#after).bind(
+      this
+    );
     this.#ms = ms;
   }
 
   nextItem(): Promise<StreamItem<T>> {
-    return this.#next() as any;
+    return this.#next() as Promise<StreamItem<T>>;
   }
 
   async #before() {

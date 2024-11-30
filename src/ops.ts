@@ -12,7 +12,6 @@ import { SyncIntoAsyncStreamAdapter } from "./combinators/sync-as-async";
 import { AsyncThrottleStream } from "./combinators/throttle";
 import { AsyncWhileStream, SyncWhileStream } from "./combinators/while";
 import { AsyncWindowStream, SyncWindowStream } from "./combinators/window";
-import Stream from "./index";
 import { AnyItera, AnyStream, Promising, StreamItem } from "./types";
 
 export class SyncStreamOps<T> extends SyncStream<T> {
@@ -66,7 +65,7 @@ export class SyncStreamOps<T> extends SyncStream<T> {
   /**
    * @param fn Function that perform actions to every element of stream
    */
-  forEach(fn: (a: T) => any): void {
+  forEach(fn: (a: T) => void): void {
     while (1) {
       const item = this.nextItem();
       if ("done" in item) return;
@@ -105,15 +104,31 @@ export class SyncStreamOps<T> extends SyncStream<T> {
 
   /**
    * @param fn Reducing function
-   * @param init Initial accumulator value
-   * @returns Result of function that was applied to every stream element and using previous return as second argument
+   * @returns Result of function that was applied to every stream element and using previous return as first argument
    */
-  reduce<R>(fn: (a: T, b: R) => R, init: R): R {
+  reduce(fn: (a: T, b: T) => T): T {
+    const head = this.head();
+    if (head === null) throw Error("Stream is empty");
+    while (1) {
+      const item = head[1].nextItem();
+      if ("done" in item) return head[0];
+      if ("error" in item) throw item.error;
+      head[0] = fn(head[0], item.value);
+    }
+    throw Error("Impossible");
+  }
+
+  /**
+   * @param fn Reducing function
+   * @param init Initial accumulator value
+   * @returns Result of function that was applied to every stream element and using previous return as first argumentа
+   */
+  fold<R>(fn: (a: R, b: T) => R, init: R): R {
     while (1) {
       const item = this.nextItem();
       if ("done" in item) return init;
       if ("error" in item) throw item.error;
-      init = fn(item.value, init);
+      init = fn(init, item.value);
     }
     throw Error("Impossible");
   }
@@ -142,13 +157,13 @@ export class SyncStreamOps<T> extends SyncStream<T> {
   }
 
   /**
-   * @returns A first element of a stream. If stream is empty, returns null
+   * @returns A first element of a stream and rest of stream. If stream is empty, returns null
    */
-  first(): T | null {
+  head(): [T, this] | null {
     const item = this.nextItem();
     if ("done" in item) return null;
     if ("error" in item) throw item.error;
-    return item.value;
+    return [item.value, this];
   }
 
   /**
@@ -206,6 +221,57 @@ export class SyncStreamOps<T> extends SyncStream<T> {
     this: this extends SyncStream<SyncStream<T>> ? this : never
   ): SyncStreamOps<T> {
     return new SyncStreamOps(new SyncFlattenStream(this));
+  }
+
+  /**
+   * @returns Sum of all elements in numeric stream
+   */
+  sum(this: this extends SyncStreamOps<number> ? this : never): number {
+    return this.fold((a, b) => a + b, 0);
+  }
+
+  /**
+   * @returns Minimum of all elements in numeric stream
+   */
+  min(this: this extends SyncStreamOps<number> ? this : never): number {
+    return this.reduce(Math.min);
+  }
+
+  /**
+   * @returns Maximum of all elements in numeric stream
+   */
+  max(this: this extends SyncStreamOps<number> ? this : never): number {
+    return this.reduce(Math.min);
+  }
+
+  mean(this: this extends SyncStreamOps<number> ? this : never): number {
+    const head = this.head();
+    if (head === null) throw Error("Stream is empty");
+    const [sum, count] = head[1].fold(
+      ([a, count], b) => [a + b, count + 1],
+      [head[0], 1]
+    );
+    return sum / count;
+  }
+
+  some(fn: (a: T) => boolean): boolean {
+    while (1) {
+      const item = this.nextItem();
+      if ("error" in item) throw item.error;
+      if ("done" in item) return false;
+      if (fn(item.value)) return true;
+    }
+    throw Error("Impossible");
+  }
+
+  every(fn: (a: T) => boolean): boolean {
+    while (1) {
+      const item = this.nextItem();
+      if ("error" in item) throw item.error;
+      if ("done" in item) return true;
+      if (!fn(item.value)) return false;
+    }
+    throw Error("Impossible");
   }
 
   /**
@@ -277,7 +343,7 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
    * @param fn Function that perform actions to every element of stream
    * @returns A promise that will be resolved when all elements of stream will be exhausted
    */
-  async forEach(fn: (a: T) => any): Promise<void> {
+  async forEach(fn: (a: T) => Promising<void>): Promise<void> {
     while (1) {
       const item = await this.nextItem();
       if ("done" in item) return;
@@ -345,15 +411,31 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
 
   /**
    * @param fn Reducing function
-   * @param init Initial accumulator value
-   * @returns Result of function that was applied to every stream element and using previous return as second argument
+   * @returns Result of function that was applied to every stream element and using previous return as first argument
    */
-  async reduce<R>(fn: (a: T, b: R) => Promising<R>, init: R): Promise<R> {
+  async reduce(fn: (a: T, b: T) => Promising<T>): Promise<T> {
+    const head = await this.head();
+    if (head === null) throw Error("Stream is empty");
+    while (1) {
+      const item = await head[1].nextItem();
+      if ("done" in item) return head[0];
+      if ("error" in item) throw item.error;
+      head[0] = await fn(head[0], item.value);
+    }
+    throw Error("Impossible");
+  }
+
+  /**
+   * @param fn Reducing function
+   * @param init Initial accumulator value
+   * @returns Result of function that was applied to every stream element and using previous return as first argumentа
+   */
+  async fold<R>(fn: (a: R, b: T) => Promising<R>, init: R): Promise<R> {
     while (1) {
       const item = await this.nextItem();
       if ("done" in item) return init;
       if ("error" in item) throw item.error;
-      init = await fn(item.value, init);
+      init = await fn(init, item.value);
     }
     throw Error("Impossible");
   }
@@ -375,13 +457,13 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
   }
 
   /**
-   * @returns A first element of a stream. If stream is empty, returns null
+   * @returns A first element of a stream and rest of stream. If stream is empty, returns null
    */
-  async first(): Promise<T | null> {
+  async head(): Promise<[T, this] | null> {
     const item = await this.nextItem();
     if ("done" in item) return null;
     if ("error" in item) throw item.error;
-    return item.value;
+    return [item.value, this];
   }
 
   /**
@@ -439,6 +521,45 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
     this: this extends AsyncStream<AnyStream<T>> ? this : never
   ): AsyncStreamOps<T> {
     return new AsyncStreamOps(new AsyncFlattenStream(this));
+  }
+
+  /**
+   * @returns Sum of all elements in numeric stream
+   */
+  sum(
+    this: this extends AsyncStreamOps<number> ? this : never
+  ): Promise<number> {
+    return this.fold((a, b) => a + b, 0);
+  }
+
+  /**
+   * @returns Minimum of all elements in numeric stream
+   */
+  min(
+    this: this extends AsyncStreamOps<number> ? this : never
+  ): Promise<number> {
+    return this.reduce(Math.min);
+  }
+
+  /**
+   * @returns Maximum of all elements in numeric stream
+   */
+  max(
+    this: this extends AsyncStreamOps<number> ? this : never
+  ): Promise<number> {
+    return this.reduce(Math.min);
+  }
+
+  async mean(
+    this: this extends AsyncStreamOps<number> ? this : never
+  ): Promise<number> {
+    const head = await this.head();
+    if (head === null) throw Error("Stream is empty");
+    const [sum, count] = await head[1].fold(
+      ([a, count], b) => [a + b, count + 1],
+      [head[0], 1]
+    );
+    return sum / count;
   }
 
   /**
