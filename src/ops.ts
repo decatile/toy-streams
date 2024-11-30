@@ -98,27 +98,12 @@ export class SyncStreamOps<T> extends SyncStream<T> {
     );
   }
 
-  #arrayOfStreamsIsSync(array: AnyStream<T>[]): array is SyncStream<T>[] {
-    return !array.some((x) => !x.sync);
-  }
-
   /**
    * @param other An another stream to be merged
    * @returns A stream which firstly yields all elements from underlying stream, then from `other` stream
    */
-  extend(...others: SyncStream<T>[]): SyncStreamOps<T>;
-  extend(...others: AnyStream<T>[]): AsyncStreamOps<T>;
-  extend(...others: AnyStream<T>[]): AnyOps<T> {
-    if (this.#arrayOfStreamsIsSync(others)) {
-      return new SyncStreamOps(new SyncExtendStream(this, ...others));
-    } else {
-      return new AsyncStreamOps(
-        new AsyncExtendStream(
-          new SyncIntoAsyncStreamAdapter(this),
-          ...others.map((x) => (x.sync ? new SyncIntoAsyncStreamAdapter(x) : x))
-        )
-      );
-    }
+  extend(...others: SyncStream<T>[]): SyncStreamOps<T> {
+    return new SyncStreamOps(new SyncExtendStream(this, ...others));
   }
 
   /**
