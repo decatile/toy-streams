@@ -8,9 +8,9 @@ import { AsyncFlattenStream, SyncFlattenStream } from "./combinators/flatten";
 import { SyncJoinStream, AsyncJoinStream } from "./combinators/join";
 import { SyncMapStream, AsyncMapStream } from "./combinators/map";
 import {
-  AsyncMeasuredStream,
-  SyncMeasuringStream,
-} from "./combinators/measuring";
+  AsyncMeasureStream,
+  SyncMeasureStream,
+} from "./combinators/measure";
 import { SyncIntoAsyncStreamAdapter } from "./combinators/sync-as-async";
 import { AsyncThrottleStream } from "./combinators/throttle";
 import { AsyncWhileStream, SyncWhileStream } from "./combinators/while";
@@ -124,8 +124,8 @@ export class SyncStreamOps<T> extends SyncStream<T> {
   /**
    * @returns A stream which yields a tuple of actual element and time in milliseconds it took to produce
    */
-  measured(): SyncStreamOps<[T, number]> {
-    return new SyncStreamOps(new SyncMeasuringStream(this));
+  measure(): SyncStreamOps<[T, number]> {
+    return new SyncStreamOps(new SyncMeasureStream(this));
   }
 
   /**
@@ -356,8 +356,8 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
   /**
    * @returns A stream which yields a tuple of actual element and time in milliseconds it took to produce
    */
-  measured(): AsyncStreamOps<[T, number]> {
-    return new AsyncStreamOps(new AsyncMeasuredStream(this));
+  measure(): AsyncStreamOps<[T, number]> {
+    return new AsyncStreamOps(new AsyncMeasureStream(this));
   }
 
   /**

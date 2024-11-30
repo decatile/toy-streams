@@ -2,7 +2,7 @@ import { SyncStream, AsyncStream } from "../base";
 import { StreamItem } from "../types";
 import { Items } from "../utils";
 
-export class SyncMeasuringStream<T> extends SyncStream<[T, number]> {
+export class SyncMeasureStream<T> extends SyncStream<[T, number]> {
   #stream;
 
   constructor(stream: SyncStream<T>) {
@@ -18,7 +18,7 @@ export class SyncMeasuringStream<T> extends SyncStream<[T, number]> {
   }
 }
 
-export class AsyncMeasuredStream<T> extends AsyncStream<[T, number]> {
+export class AsyncMeasureStream<T> extends AsyncStream<[T, number]> {
   #stream;
 
   constructor(stream: AsyncStream<T>) {
