@@ -17,7 +17,6 @@ import { AsyncWhileStream, SyncWhileStream } from "./combinators/while";
 import { AsyncWindowStream, SyncWindowStream } from "./combinators/window";
 import {
   AnyItera,
-  AnyOps,
   AnyStream,
   ExtendsOrNever,
   Promising,

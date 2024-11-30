@@ -32,12 +32,13 @@ const asyncStream: AsyncStreamOps<number> = Stream.gather([Promise.resolve(1)]);
 
 ### Example: Delayed Join Operation
 
-Before each pull, it waits for a timeout (100ms), performs a (`zip(stream<A>, stream<B>) -> stream<[A, B]>`) operation with the condition that until both streams exhaust themselves, the values will continue to arrive. If one of the streams has ended, `null` will be returned in place of its result. Iterate through the entire stream and apply a callback to each element.
+Lift stream into async context to use promise-based combinators. Before each pull, it waits for a timeout (100ms), performs a (`fullJoin(stream<A>, stream<B>) -> stream<[A, B]>`) operation with the condition that until both streams exhaust themselves, the values will continue to arrive. If one of the streams has ended, `null` will be returned in place of its result. Iterate through the entire stream and apply a callback to each element.
 
 ```js
 syncStream
+  .async()
   .delayed(100)
-  .join(asyncStream, 'full')
+  .fullJoin(asyncStream)
   .forEach(console.log);
 ```
 
