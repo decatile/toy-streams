@@ -15,13 +15,21 @@ export type AnyItera<T> =
 
 export type ExtendsOrNever<E, A> = A extends E ? A : never;
 
-export type JoinStreamKind = "inner" | "left" | "right" | "full";
+export type WhileStreamKind = "take-while" | "drop-while";
+
+export type DelayStreamKind = "before-pull" | "after-pull";
+
+export type JoinStreamKind =
+  | "inner-join"
+  | "left-join"
+  | "right-join"
+  | "full-join";
 
 export type JoinStreamReturnType<A, B, K extends JoinStreamKind> = {
-  inner: [A, B];
-  left: [A, B | null];
-  right: [A | null, B];
-  full: [A, B] | [A, null] | [null, B];
+  "inner-join": [A, B];
+  "left-join": [A, B | null];
+  "right-join": [A | null, B];
+  "full-join": [A, B] | [A, null] | [null, B];
 }[K];
 
 export type Promising<T> = T | Promise<T>;

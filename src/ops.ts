@@ -1,6 +1,6 @@
 import { AsyncStream, SyncStream } from "./base";
 import { AsyncBatchesStream, SyncBatchesStream } from "./combinators/batches";
-import { AsyncDelayedStream } from "./combinators/delayed";
+import { AsyncDelayStream } from "./combinators/delay";
 import { SyncExtendStream, AsyncExtendStream } from "./combinators/extend";
 import { SyncFilterStream, AsyncFilterStream } from "./combinators/filter";
 import { SyncFlatMapStream, AsyncFlatMapStream } from "./combinators/flatmap";
@@ -12,14 +12,14 @@ import {
   SyncMeasuringStream,
 } from "./combinators/measuring";
 import { SyncIntoAsyncStreamAdapter } from "./combinators/sync-as-async";
+import { AsyncThrottleStream } from "./combinators/throttle";
+import { AsyncWhileStream, SyncWhileStream } from "./combinators/while";
 import { AsyncWindowStream, SyncWindowStream } from "./combinators/window";
 import {
   AnyItera,
   AnyOps,
   AnyStream,
   ExtendsOrNever,
-  JoinStreamKind,
-  JoinStreamReturnType,
   Promising,
   StreamItem,
 } from "./types";
@@ -41,16 +41,6 @@ export class SyncStreamOps<T> extends SyncStream<T> {
   }
 
   /**
-   * @returns An asynchronous stream simular to SyncStream.map, but function returns promise instead of pure value
-   */
-  mapAsync<T1>(fn: (a: T) => Promise<T1>): AsyncStreamOps<T1> {
-    return new AsyncStreamOps(
-      new AsyncMapStream(new SyncIntoAsyncStreamAdapter(this), fn)
-    );
-  }
-
-  /**
-   *
    * @param fn Transformer function that returns iterable object
    * @returns A stream which parts will be computed using transformer function from the every element of underlying stream
    */
@@ -59,29 +49,11 @@ export class SyncStreamOps<T> extends SyncStream<T> {
   }
 
   /**
-   * @returns An asynchronous stream simular to SyncStream.flatMap, but function returns promise instead of pure value
-   */
-  flatMapAsync<T1>(fn: (a: T) => Promise<AnyItera<T1>>): AsyncStreamOps<T1> {
-    return new AsyncStreamOps(
-      new AsyncFlatMapStream(new SyncIntoAsyncStreamAdapter(this), fn)
-    );
-  }
-
-  /**
    * @param fn Preducate function
    * @returns A stream that yields only elements that match predicate function
    */
   filter(fn: (a: T) => boolean): SyncStreamOps<T> {
     return new SyncStreamOps(new SyncFilterStream(this, fn));
-  }
-
-  /**
-   * @returns An asynchronous stream simular to SyncStream.filter, buf function returns promise instead of pure value
-   */
-  filterAsync(fn: (a: T) => Promise<boolean>): AsyncStreamOps<T> {
-    return new AsyncStreamOps(
-      new AsyncFilterStream(new SyncIntoAsyncStreamAdapter(this), fn)
-    );
   }
 
   /**
@@ -107,25 +79,22 @@ export class SyncStreamOps<T> extends SyncStream<T> {
   }
 
   /**
-   * @returns Simular to SyncStream.forEach, but function returns promise, that will be awaited before continuing.
-   * Returns a promise that will be resolved when all elements of stream will be exhausted
+   * @param predicate Predicate function
+   * @returns An synchronous stream which yields elements while predicate on every of them is truthy
    */
-  async forEachAsync(fn: (a: T) => Promise<any>): Promise<void> {
-    while (1) {
-      const item = this.nextItem();
-      if ("done" in item) return;
-      if ("error" in item) throw item.error;
-      await fn(item.value);
-    }
+  takeWhile(predicate: (a: T) => boolean) {
+    return new SyncStreamOps(
+      new SyncWhileStream(this, "take-while", predicate)
+    );
   }
 
   /**
-   * @param ms A timeout before requesting a yield from underlying stream
-   * @returns An asynchronous stream that delay every yield by `ms` milliseconds
+   * @param predicate Predicate function
+   * @returns An synchronous stream which drops elements while predicate on every of them is truthy, then yields the rest
    */
-  delayed(ms: number): AsyncStreamOps<T> {
-    return new AsyncStreamOps(
-      new AsyncDelayedStream(new SyncIntoAsyncStreamAdapter(this), ms)
+  dropWhile(predicate: (a: T) => boolean) {
+    return new SyncStreamOps(
+      new SyncWhileStream(this, "drop-while", predicate)
     );
   }
 
@@ -175,7 +144,7 @@ export class SyncStreamOps<T> extends SyncStream<T> {
   }
 
   /**
-   * @returns A synchronous stream which acts as asynchronous stream
+   * @returns Lifts underlying stream into asynchronous context
    */
   async(): AsyncStreamOps<T> {
     return new AsyncStreamOps(new SyncIntoAsyncStreamAdapter(this));
@@ -215,29 +184,35 @@ export class SyncStreamOps<T> extends SyncStream<T> {
   }
 
   /**
-   * Think of it like SQL join, in that case it will be intuitive
    * @param other Other stream meant to be joined
-   * @param kind Join kind, see its type
+   * @returns A Stream<[T, T1]> which will yield elements while both streams does not exhausted
    */
-  join<T1, K extends JoinStreamKind>(
-    other: SyncStream<T1>,
-    join: K
-  ): SyncStreamOps<JoinStreamReturnType<T, T1, K>>;
-  join<T1, K extends JoinStreamKind>(
-    other: AsyncStream<T1>,
-    join: K
-  ): AsyncStreamOps<JoinStreamReturnType<T, T1, K>>;
-  join<T1, K extends JoinStreamKind>(
-    other: AnyStream<T1>,
-    join: K
-  ): AnyOps<JoinStreamReturnType<T, T1, K>> {
-    if (other.sync) {
-      return new SyncStreamOps(new SyncJoinStream(this, other, join));
-    } else {
-      return new AsyncStreamOps(
-        new AsyncJoinStream(new SyncIntoAsyncStreamAdapter(this), other, join)
-      );
-    }
+  join<T1>(other: SyncStream<T1>) {
+    return new SyncStreamOps(new SyncJoinStream(this, other, "inner-join"));
+  }
+
+  /**
+   * @param other Other stream meant to be joined
+   * @returns A Stream<[T, T1]> which will yield elements while left stream does not exhausted
+   */
+  leftJoin<T1>(other: SyncStream<T1>) {
+    return new SyncStreamOps(new SyncJoinStream(this, other, "left-join"));
+  }
+
+  /**
+   * @param other Other stream meant to be joined
+   * @returns A Stream<[T, T1]> which will yield elements while right stream does not exhausted
+   */
+  rightJoin<T1>(other: SyncStream<T1>) {
+    return new SyncStreamOps(new SyncJoinStream(this, other, "right-join"));
+  }
+
+  /**
+   * @param other Other stream meant to be joined
+   * @returns A Stream<[T, T1]> which will yield elements while one of streams does not exhausted
+   */
+  fullJoin<T1>(other: SyncStream<T1>) {
+    return new SyncStreamOps(new SyncJoinStream(this, other, "full-join"));
   }
 
   /**
@@ -249,12 +224,18 @@ export class SyncStreamOps<T> extends SyncStream<T> {
     return new SyncStreamOps(new SyncFlattenStream(this));
   }
 
+  /**
+   * @returns An array of stream elements
+   */
   collect(): T[] {
     const r = [];
     for (const x of this) r.push(x);
     return r;
   }
 
+  /**
+   * @returns A raw item of stream
+   */
   nextItem(): StreamItem<T> {
     return this.#stream.nextItem();
   }
@@ -270,7 +251,7 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
 
   /**
    * @param fn Transformer function
-   * @returns A stream that transform every element of underlying stream using transformer function. If transformer function returns a promise, it will be resolved before yielding
+   * @returns A stream that transform every element of underlying stream using transformer function
    */
   map<T1>(fn: (a: T) => Promising<T1>): AsyncStreamOps<T1> {
     return new AsyncStreamOps(new AsyncMapStream(this, fn));
@@ -278,7 +259,7 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
 
   /**
    * @param fn Transformer function that returns iterable object
-   * @returns A stream which parts will be computed using transformer function from the every element of underlying stream. If transformer function returns a promise, it will be resolved before yielding
+   * @returns A stream which parts will be computed using transformer function from the every element of underlying stream
    */
   flatMap<T1>(fn: (a: T) => Promising<AnyItera<T1>>): AsyncStreamOps<T1> {
     return new AsyncStreamOps(new AsyncFlatMapStream(this, fn));
@@ -286,7 +267,7 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
 
   /**
    * @param fn Preducate function
-   * @returns A stream that yields only elements that match predicate function. If transformer function returns a promise, it will be resolved before yielding
+   * @returns A stream that yields only elements that match predicate function
    */
   filter(fn: (a: T) => Promising<boolean>): AsyncStreamOps<T> {
     return new AsyncStreamOps(new AsyncFilterStream(this, fn));
@@ -303,23 +284,10 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
   }
 
   /**
-   * @param fn Function that perform actions to every element of stream.
+   * @param fn Function that perform actions to every element of stream
    * @returns A promise that will be resolved when all elements of stream will be exhausted
    */
   async forEach(fn: (a: T) => any): Promise<void> {
-    while (1) {
-      const item = await this.nextItem();
-      if ("done" in item) return;
-      if ("error" in item) throw item.error;
-      fn(item.value);
-    }
-  }
-
-  /**
-   * @returns Simular to AsyncStream.forEach, but function returns promise, that will be awaited before continuing.
-   * Returns a promise that will be resolved when all elements of stream will be exhausted
-   */
-  async forEachAsync(fn: (a: T) => Promise<any>): Promise<void> {
     while (1) {
       const item = await this.nextItem();
       if ("done" in item) return;
@@ -332,8 +300,44 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
    * @param ms A timeout before requesting a yield from underlying stream
    * @returns An asynchronous stream that delay every yield by `ms` milliseconds
    */
-  delayed(ms: number): AsyncStreamOps<T> {
-    return new AsyncStreamOps(new AsyncDelayedStream(this, ms));
+  delayBefore(ms: number): AsyncStreamOps<T> {
+    return new AsyncStreamOps(new AsyncDelayStream(this, "before-pull", ms));
+  }
+
+  /**
+   * @param ms A timeout after requesting a yield from underlying stream
+   * @returns An asynchronous stream that delay every yield by `ms` milliseconds
+   */
+  delayAfter(ms: number): AsyncStreamOps<T> {
+    return new AsyncStreamOps(new AsyncDelayStream(this, "after-pull", ms));
+  }
+
+  /**
+   * @param ms A timeout that represents a minimal time stream yield after
+   * @returns An asynchronous stream that delay every yield by `ms` milliseconds
+   */
+  throttle(ms: number): AsyncStreamOps<T> {
+    return new AsyncStreamOps(new AsyncThrottleStream(this, ms));
+  }
+
+  /**
+   * @param predicate Predicate function
+   * @returns An synchronous stream which yields elements while predicate on every of them is truthy
+   */
+  takeWhile(predicate: (a: T) => Promising<boolean>) {
+    return new AsyncStreamOps(
+      new AsyncWhileStream(this, "take-while", predicate)
+    );
+  }
+
+  /**
+   * @param predicate Predicate function
+   * @returns An synchronous stream which drops elements while predicate on every of them is truthy, then yields the rest
+   */
+  dropWhile(predicate: (a: T) => Promising<boolean>) {
+    return new AsyncStreamOps(
+      new AsyncWhileStream(this, "drop-while", predicate)
+    );
   }
 
   /**
@@ -405,21 +409,35 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
   }
 
   /**
-   * Think of it like SQL join, in that case it will be intuitive
    * @param other Other stream meant to be joined
-   * @param kind Join kind, see its type
+   * @returns A Stream<[T, T1]> which will yield elements while both streams does not exhausted
    */
-  join<T1, K extends JoinStreamKind>(
-    other: AnyStream<T1>,
-    kind: K
-  ): AsyncStreamOps<JoinStreamReturnType<T, T1, K>> {
-    return new AsyncStreamOps(
-      new AsyncJoinStream(
-        this,
-        other.sync ? new SyncIntoAsyncStreamAdapter(other) : other,
-        kind
-      )
-    );
+  join<T1>(other: AsyncStream<T1>) {
+    return new AsyncStreamOps(new AsyncJoinStream(this, other, "inner-join"));
+  }
+
+  /**
+   * @param other Other stream meant to be joined
+   * @returns A Stream<[T, T1]> which will yield elements while left stream does not exhausted
+   */
+  leftJoin<T1>(other: AsyncStream<T1>) {
+    return new AsyncStreamOps(new AsyncJoinStream(this, other, "left-join"));
+  }
+
+  /**
+   * @param other Other stream meant to be joined
+   * @returns A Stream<[T, T1]> which will yield elements while right stream does not exhausted
+   */
+  rightJoin<T1>(other: AsyncStream<T1>) {
+    return new AsyncStreamOps(new AsyncJoinStream(this, other, "right-join"));
+  }
+
+  /**
+   * @param other Other stream meant to be joined
+   * @returns A Stream<[T, T1]> which will yield elements while one of streams does not exhausted
+   */
+  fullJoin<T1>(other: AsyncStream<T1>) {
+    return new AsyncStreamOps(new AsyncJoinStream(this, other, "full-join"));
   }
 
   /**
@@ -431,12 +449,18 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
     return new AsyncStreamOps(new AsyncFlattenStream(this));
   }
 
+  /**
+   * @returns An array of stream elements
+   */
   async collect(): Promise<T[]> {
     const r = [];
     for await (const x of this) r.push(x);
     return r;
   }
 
+  /**
+   * @returns A raw item of stream
+   */
   nextItem(): Promise<StreamItem<T>> {
     return this.#stream.nextItem();
   }

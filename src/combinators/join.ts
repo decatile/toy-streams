@@ -16,11 +16,11 @@ export class SyncJoinStream<A, B, K extends JoinStreamKind> extends SyncStream<
     this.#as = as;
     this.#bs = bs;
     this.#next = (
-      kind === "inner"
+      kind === "inner-join"
         ? this.#inner
-        : kind === "left"
+        : kind === "left-join"
         ? this.#left
-        : kind === "right"
+        : kind === "right-join"
         ? this.#right
         : this.#full
     ).bind(this);
@@ -113,11 +113,11 @@ export class AsyncJoinStream<
     this.#as = as;
     this.#bs = bs;
     this.#next = (
-      kind === "inner"
+      kind === "inner-join"
         ? this.#inner
-        : kind === "left"
+        : kind === "left-join"
         ? this.#left
-        : kind === "right"
+        : kind === "right-join"
         ? this.#right
         : this.#full
     ).bind(this);
