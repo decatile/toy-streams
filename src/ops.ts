@@ -12,13 +12,8 @@ import { SyncIntoAsyncStreamAdapter } from "./combinators/sync-as-async";
 import { AsyncThrottleStream } from "./combinators/throttle";
 import { AsyncWhileStream, SyncWhileStream } from "./combinators/while";
 import { AsyncWindowStream, SyncWindowStream } from "./combinators/window";
-import {
-  AnyItera,
-  AnyStream,
-  ExtendsOrNever,
-  Promising,
-  StreamItem,
-} from "./types";
+import Stream from "./index";
+import { AnyItera, AnyStream, Promising, StreamItem } from "./types";
 
 export class SyncStreamOps<T> extends SyncStream<T> {
   #stream;
@@ -207,8 +202,8 @@ export class SyncStreamOps<T> extends SyncStream<T> {
   /**
    * @returns A stream that returns each element of each stream that returns the stream is passed as an argument
    */
-  flatten<T, Self extends this>(
-    this: ExtendsOrNever<SyncStream<SyncStream<any>>, Self>
+  flatten<T>(
+    this: this extends SyncStream<SyncStream<T>> ? this : never
   ): SyncStreamOps<T> {
     return new SyncStreamOps(new SyncFlattenStream(this));
   }
@@ -440,8 +435,8 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
   /**
    * @returns A stream that returns each element of each stream that returns the stream is passed as an argument
    */
-  flatten<T, Self extends this>(
-    this: ExtendsOrNever<AsyncStream<AnyStream<any>>, Self>
+  flatten<T>(
+    this: this extends AsyncStream<AnyStream<T>> ? this : never
   ): AsyncStreamOps<T> {
     return new AsyncStreamOps(new AsyncFlattenStream(this));
   }

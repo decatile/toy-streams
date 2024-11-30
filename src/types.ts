@@ -13,8 +13,6 @@ export type AnyItera<T> =
   | AsyncIterable<T>
   | AsyncIterator<T>;
 
-export type ExtendsOrNever<E, A> = A extends E ? A : never;
-
 export type WindowStreamKind = "take" | "skip";
 
 export type WhileStreamKind = "take-while" | "drop-while";
