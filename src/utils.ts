@@ -1,5 +1,14 @@
 import type { AnyItera, StreamItem } from "./types";
 
+export const STREAM_CANCEL_SIGNAL = Symbol("toy-streams.stream-cancel");
+
+/**
+ * Call this function in stream callack to end stream
+ */
+export function cancelStream() {
+  throw STREAM_CANCEL_SIGNAL;
+}
+
 export const Items = Object.freeze({
   done: { done: true as const },
   item: <T>(value: T) => ({ value }),

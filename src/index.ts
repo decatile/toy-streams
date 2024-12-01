@@ -8,9 +8,9 @@ import { GatherIterableStream } from "./combinators/gather";
 import { SyncIterateStream, AsyncIterateStream } from "./combinators/iterate";
 import { AsyncStreamOps, SyncStreamOps } from "./ops";
 import { AnyItera, AnyOps, AnyStream, Promising, StreamItem } from "./types";
-import { intoIter } from "./utils";
+import { cancelStream, intoIter } from "./utils";
 
-export { SyncStream, AsyncStream, StreamItem };
+export { cancelStream, SyncStream, AsyncStream, StreamItem };
 
 export class Stream {
   /**

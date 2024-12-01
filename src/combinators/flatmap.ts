@@ -1,6 +1,6 @@
 import { AsyncStream, SyncStream } from "../base";
 import { AnyItera, Promising, StreamItem } from "../types";
-import { Items } from "../utils";
+import { Items, STREAM_CANCEL_SIGNAL } from "../utils";
 
 export class SyncFlatMapStream<T, T1> extends SyncStream<T1> {
   #current: Iterator<T1> | null = null;
@@ -30,6 +30,7 @@ export class SyncFlatMapStream<T, T1> extends SyncStream<T1> {
         this.#current = null;
       }
     } catch (e) {
+      if (e === STREAM_CANCEL_SIGNAL) return Items.done;
       return Items.error(e);
     }
     throw Error("Impossible");
@@ -66,6 +67,7 @@ export class AsyncFlatMapStream<T, T1> extends AsyncStream<T1> {
       if (!("done" in item)) return item;
       this.#current = null;
     } catch (e) {
+      if (e === STREAM_CANCEL_SIGNAL) return Items.done;
       return Items.error(e);
     }
     throw Error("Impossible");

@@ -1,6 +1,6 @@
 import { AsyncStream, SyncStream } from "../base";
 import { Promising, StreamItem } from "../types";
-import { Items } from "../utils";
+import { Items, STREAM_CANCEL_SIGNAL } from "../utils";
 
 export class SyncFilterStream<T> extends SyncStream<T> {
   #stream;
@@ -19,6 +19,7 @@ export class SyncFilterStream<T> extends SyncStream<T> {
         if (!("value" in item) || this.#fn(item.value)) return item;
       }
     } catch (e) {
+      if (e === STREAM_CANCEL_SIGNAL) return Items.done;
       return Items.error(e);
     }
     throw Error("Impossible");
@@ -42,6 +43,7 @@ export class AsyncFilterStream<T> extends AsyncStream<T> {
         if (!("value" in item) || (await this.#fn(item.value))) return item;
       }
     } catch (e) {
+      if (e == STREAM_CANCEL_SIGNAL) return Items.done;
       return Items.error(e);
     }
     throw Error("Impossible");
