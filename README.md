@@ -50,7 +50,7 @@ syncStream
 
 ## Contributing
 
-If you want to contribute to the project, you are welcome to my [GitHub](https://github.com/yourusername/toy-streams).
+If you want to contribute to the project, you are welcome to my [GitHub](https://github.com/decatile/toy-streams).
 
 ---
 
