@@ -1,4 +1,5 @@
 import { AsyncStream, SyncStream } from "./base";
+import { AsyncAttemptStream, SyncAttemptStream } from "./combinators/attempt";
 import { AsyncBatchesStream, SyncBatchesStream } from "./combinators/batches";
 import { AsyncDelayStream } from "./combinators/delay";
 import { SyncExtendStream, AsyncExtendStream } from "./combinators/extend";
@@ -12,7 +13,7 @@ import { SyncIntoAsyncStreamAdapter } from "./combinators/sync-as-async";
 import { AsyncThrottleStream } from "./combinators/throttle";
 import { AsyncWhileStream, SyncWhileStream } from "./combinators/while";
 import { AsyncWindowStream, SyncWindowStream } from "./combinators/window";
-import { AnyItera, AnyStream, Promising, StreamItem } from "./types";
+import { AnyItera, AnyStream, Either, Promising, StreamItem } from "./types";
 
 export class SyncStreamOps<T> extends SyncStream<T> {
   #stream;
@@ -244,6 +245,9 @@ export class SyncStreamOps<T> extends SyncStream<T> {
     return this.reduce(Math.min);
   }
 
+  /**
+   * @returns Mean of all elements in numeric stream
+   */
   mean(this: this extends SyncStreamOps<number> ? this : never): number {
     const head = this.head();
     if (head === null) throw Error("Stream is empty");
@@ -254,6 +258,10 @@ export class SyncStreamOps<T> extends SyncStream<T> {
     return sum / count;
   }
 
+  /**
+   * @param fn Predicate function
+   * @returns True if any of stream elements matches predicate
+   */
   some(fn: (a: T) => boolean): boolean {
     while (1) {
       const item = this.nextItem();
@@ -264,6 +272,10 @@ export class SyncStreamOps<T> extends SyncStream<T> {
     throw Error("Impossible");
   }
 
+  /**
+   * @param fn Predicate function
+   * @returns True if all of stream elements matches predicate
+   */
   every(fn: (a: T) => boolean): boolean {
     while (1) {
       const item = this.nextItem();
@@ -275,12 +287,24 @@ export class SyncStreamOps<T> extends SyncStream<T> {
   }
 
   /**
+   * @returns A stream, with errors put to userspace
+   */
+  attempt(): SyncStreamOps<Either<unknown, T>> {
+    return new SyncStreamOps(new SyncAttemptStream(this));
+  }
+
+  /**
    * @returns An array of stream elements
    */
-  collect(): T[] {
-    const r = [];
-    for (const x of this) r.push(x);
-    return r;
+  collect(): T[];
+  collect(withErrors: false): T[];
+  collect(withErrors: true): Either<unknown, T>[];
+  collect(withErrors?: boolean): (T | Either<unknown, T>)[] {
+    if (withErrors) {
+      return this.attempt().collect();
+    } else {
+      return [...this];
+    }
   }
 
   /**
@@ -550,6 +574,9 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
     return this.reduce(Math.min);
   }
 
+  /**
+   * @returns Mean of all elements in numeric stream
+   */
   async mean(
     this: this extends AsyncStreamOps<number> ? this : never
   ): Promise<number> {
@@ -563,12 +590,54 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
   }
 
   /**
+   * @param fn Predicate function
+   * @returns True if any of stream elements matches predicate
+   */
+  async some(fn: (a: T) => Promising<boolean>): Promise<boolean> {
+    while (1) {
+      const item = await this.nextItem();
+      if ("error" in item) throw item.error;
+      if ("done" in item) return false;
+      if (await fn(item.value)) return true;
+    }
+    throw Error("Impossible");
+  }
+
+  /**
+   * @param fn Predicate function
+   * @returns True if all of stream elements matches predicate
+   */
+  async every(fn: (a: T) => Promising<boolean>): Promise<boolean> {
+    while (1) {
+      const item = await this.nextItem();
+      if ("error" in item) throw item.error;
+      if ("done" in item) return true;
+      if (!(await fn(item.value))) return false;
+    }
+    throw Error("Impossible");
+  }
+
+  /**
+   * @returns A stream, with errors put to userspace
+   */
+  attempt(): AsyncStreamOps<Either<unknown, T>> {
+    return new AsyncStreamOps(new AsyncAttemptStream(this));
+  }
+
+  /**
    * @returns An array of stream elements
    */
-  async collect(): Promise<T[]> {
-    const r = [];
-    for await (const x of this) r.push(x);
-    return r;
+  collect(): Promise<T[]>;
+  collect(withErrors: false): Promise<T[]>;
+  collect(withErrors: true): Promise<Either<unknown, T>[]>;
+  async collect(withErrors?: boolean): Promise<(T | Either<unknown, T>)[]> {
+    if (withErrors) {
+      return this.attempt().collect();
+    } else {
+      const r = [];
+      for await (const x of this) r.push(x);
+      return r;
+    }
   }
 
   /**

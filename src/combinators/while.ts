@@ -26,10 +26,14 @@ export class SyncWhileStream<T> extends SyncStream<T> {
   #drop() {
     if (!this.#done) {
       let item: StreamItem<T>;
-      do {
-        item = this.#stream.nextItem();
-        if (!("value" in item)) return item;
-      } while (this.#predicate(item.value));
+      try {
+        do {
+          item = this.#stream.nextItem();
+          if (!("value" in item)) return item;
+        } while (this.#predicate(item.value));
+      } catch (e) {
+        return Items.error(e);
+      }
       this.#done = true;
       return item;
     } else {
@@ -40,7 +44,11 @@ export class SyncWhileStream<T> extends SyncStream<T> {
   #take() {
     const item = this.#stream.nextItem();
     if ("error" in item) return item;
-    if ("value" in item && this.#predicate(item.value)) return item;
+    try {
+      if ("value" in item && this.#predicate(item.value)) return item;
+    } catch (e) {
+      return Items.error(e);
+    }
     return Items.done;
   }
 }
@@ -69,10 +77,14 @@ export class AsyncWhileStream<T> extends AsyncStream<T> {
   async #drop() {
     if (!this.#done) {
       let item: StreamItem<T>;
-      do {
-        item = await this.#stream.nextItem();
-        if (!("value" in item)) return item;
-      } while (await this.#predicate(item.value));
+      try {
+        do {
+          item = await this.#stream.nextItem();
+          if (!("value" in item)) return item;
+        } while (await this.#predicate(item.value));
+      } catch (e) {
+        return Items.error(e);
+      }
       this.#done = true;
       return item;
     } else {
@@ -83,7 +95,11 @@ export class AsyncWhileStream<T> extends AsyncStream<T> {
   async #take() {
     const item = await this.#stream.nextItem();
     if ("error" in item) return item;
-    if ("value" in item && (await this.#predicate(item.value))) return item;
+    try {
+      if ("value" in item && (await this.#predicate(item.value))) return item;
+    } catch (e) {
+      return Items.error(e);
+    }
     return Items.done;
   }
 }

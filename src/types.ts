@@ -1,6 +1,8 @@
 import type { AsyncStream, SyncStream } from "./base";
 import type { AsyncStreamOps, SyncStreamOps } from "./ops";
 
+export type Either<A, B> = { left: A } | { right: B };
+
 export type StreamItem<T> = { value: T } | { error: unknown } | { done: true };
 
 export type AnyStream<T> = SyncStream<T> | AsyncStream<T>;

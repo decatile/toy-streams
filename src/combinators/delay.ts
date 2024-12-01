@@ -26,7 +26,7 @@ export class AsyncDelayStream<T> extends AsyncStream<T> {
 
   async #after() {
     const item = await this.#stream.nextItem();
-    if (!("value" in item)) return item;
-    return new Promise((r) => setTimeout(() => r(item), this.#ms));
+    await new Promise((r) => setTimeout(r, this.#ms));
+    return item;
   }
 }
