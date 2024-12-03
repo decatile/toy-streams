@@ -4,6 +4,7 @@ import { Items } from "../utils";
 
 export class SyncFailStream<T> extends SyncStream<T> {
   #error;
+  #done = false;
 
   constructor(error: unknown) {
     super();
@@ -11,6 +12,8 @@ export class SyncFailStream<T> extends SyncStream<T> {
   }
 
   nextItem(): StreamItem<T> {
+    if (this.#done) return Items.done;
+    this.#done = true;
     return Items.error(this.#error);
   }
 }
