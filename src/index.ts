@@ -10,7 +10,14 @@ import { AsyncStreamOps, SyncStreamOps } from "./ops";
 import { AnyItera, AnyOps, AnyStream, Promising, StreamItem } from "./types";
 import { cancelStream, intoIter } from "./utils";
 
-export { cancelStream, SyncStream, AsyncStream, StreamItem };
+export {
+  cancelStream,
+  SyncStream,
+  AsyncStream,
+  SyncStreamOps,
+  AsyncStreamOps,
+  StreamItem,
+};
 
 export class Stream {
   /**

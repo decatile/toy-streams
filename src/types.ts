@@ -1,6 +1,26 @@
 import type { AsyncStream, SyncStream } from "./base";
 import type { AsyncStreamOps, SyncStreamOps } from "./ops";
 
+export type CollectReturnTypeWithErrorsIf<T, E extends boolean> = E extends true
+  ? Either<unknown, T>
+  : T;
+
+export type CollectReturnTypeWithMeanTimeIf<
+  T,
+  M extends boolean
+> = M extends true ? [T, number] : T;
+
+export type CollectReturnType<
+  T,
+  E extends boolean,
+  M extends boolean
+> = CollectReturnTypeWithMeanTimeIf<CollectReturnTypeWithErrorsIf<T, E>[], M>;
+
+export type CollectOptions<E extends boolean, T extends boolean> = {
+  errors?: E;
+  meanTime?: T;
+};
+
 export type Either<A, B> = { left: A } | { right: B };
 
 export type StreamItem<T> = { value: T } | { error: unknown } | { done: true };

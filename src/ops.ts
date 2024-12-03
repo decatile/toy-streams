@@ -13,7 +13,16 @@ import { SyncIntoAsyncStreamAdapter } from "./combinators/sync-as-async";
 import { AsyncThrottleStream } from "./combinators/throttle";
 import { AsyncWhileStream, SyncWhileStream } from "./combinators/while";
 import { AsyncWindowStream, SyncWindowStream } from "./combinators/window";
-import { AnyItera, AnyStream, Either, Promising, StreamItem } from "./types";
+import {
+  AnyItera,
+  AnyStream,
+  CollectOptions,
+  CollectReturnType,
+  CollectReturnTypeWithErrorsIf,
+  Either,
+  Promising,
+  StreamItem,
+} from "./types";
 
 export class SyncStreamOps<T> extends SyncStream<T> {
   #stream;
@@ -294,17 +303,48 @@ export class SyncStreamOps<T> extends SyncStream<T> {
   }
 
   /**
-   * @returns An array of stream elements
+   * @param options An options for configuring output
+   * 
+   * If `errors: true`, then instead of `T[]`, `Either<unknown, T>[]` will be returned
+   * 
+   * If `meanTime: true`, then instead `T[]`, `[T[], number]` will be returned
+   * @returns Output according to options
    */
-  collect(): T[];
-  collect(withErrors: false): T[];
-  collect(withErrors: true): Either<unknown, T>[];
-  collect(withErrors?: boolean): (T | Either<unknown, T>)[] {
-    if (withErrors) {
-      return this.attempt().collect();
-    } else {
-      return [...this];
+  collect<E extends boolean = false, M extends boolean = false>(
+    options?: CollectOptions<E, M>
+  ): CollectReturnType<T, E, M> {
+    if (!options) {
+      const result = [] as T[];
+      while (1) {
+        const item = this.next();
+        if (item.done) break;
+        result.push(item.value);
+      }
+      return result as CollectReturnType<T, E, M>;
     }
+    const that = options.errors ? this.attempt() : this;
+    if (options.meanTime) {
+      const [result, elapsed, total] = (options?.errors ? this.attempt() : this)
+        .measure()
+        .fold(
+          ([result, elapsed, total], [element, currentElapsed]) => {
+            result.push(element as CollectReturnTypeWithErrorsIf<T, E>);
+            return [result, elapsed + currentElapsed, total + 1];
+          },
+          [[], 0, 0] as [CollectReturnTypeWithErrorsIf<T, E>[], number, number]
+        );
+      return [result, elapsed / total] as CollectReturnType<T, E, M>;
+    }
+    return that.collect() as CollectReturnType<T, E, M>;
+  }
+
+  /**
+   * @returns Mean execution time (in ms) taken for every stream element
+   */
+  meanExecutionTime(): number {
+    return this.measure()
+      .map(([, x]) => x)
+      .mean();
   }
 
   /**
@@ -625,19 +665,51 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
   }
 
   /**
-   * @returns An array of stream elements
+   * @returns Mean execution time (in ms) taken for every stream element
    */
-  collect(): Promise<T[]>;
-  collect(withErrors: false): Promise<T[]>;
-  collect(withErrors: true): Promise<Either<unknown, T>[]>;
-  async collect(withErrors?: boolean): Promise<(T | Either<unknown, T>)[]> {
-    if (withErrors) {
-      return this.attempt().collect();
-    } else {
-      const r = [];
-      for await (const x of this) r.push(x);
-      return r;
+  meanExecutionTime(): Promise<number> {
+    return this.measure()
+      .map(([, x]) => x)
+      .mean();
+  }
+
+  /**
+   * @param options An options for configuring output
+   * 
+   * If `errors: true`, then instead of `T[]`, `Either<unknown, T>[]` will be returned
+   * 
+   * If `meanTime: true`, then instead `T[]`, `[T[], number]` will be returned
+   * @returns Output according to options
+   */
+  async collect<E extends boolean = false, M extends boolean = false>(
+    options?: CollectOptions<E, M>
+  ): Promise<CollectReturnType<T, E, M>> {
+    if (!options) {
+      const result = [] as T[];
+      while (1) {
+        const item = await this.next();
+        if (item.done) break;
+        result.push(item.value);
+      }
+      return result as CollectReturnType<T, E, M>;
     }
+    const that = options.errors ? this.attempt() : this;
+    if (options.meanTime) {
+      const [result, elapsed, total] = await (options?.errors
+        ? this.attempt()
+        : this
+      )
+        .measure()
+        .fold(
+          ([result, elapsed, total], [element, currentElapsed]) => {
+            result.push(element as CollectReturnTypeWithErrorsIf<T, E>);
+            return [result, elapsed + currentElapsed, total + 1];
+          },
+          [[], 0, 0] as [CollectReturnTypeWithErrorsIf<T, E>[], number, number]
+        );
+      return [result, elapsed / total] as CollectReturnType<T, E, M>;
+    }
+    return (await that.collect()) as CollectReturnType<T, E, M>;
   }
 
   /**

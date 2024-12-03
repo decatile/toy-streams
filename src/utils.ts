@@ -3,9 +3,10 @@ import type { AnyItera, StreamItem } from "./types";
 export const STREAM_CANCEL_SIGNAL = Symbol("toy-streams.stream-cancel");
 
 /**
- * Call this function in stream callack to end stream
+ * Call this function in stream callback to end stream. Note: it throws a specific exception,
+ * so be sure to not throw it in `try` blocks
  */
-export function cancelStream() {
+export function cancelStream(): never {
   throw STREAM_CANCEL_SIGNAL;
 }
 
