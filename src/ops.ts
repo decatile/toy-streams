@@ -22,6 +22,7 @@ import {
   Either,
   Promising,
   StreamItem,
+  SyncItera,
 } from "./types";
 
 export class SyncStreamOps<T> extends SyncStream<T> {
@@ -44,8 +45,14 @@ export class SyncStreamOps<T> extends SyncStream<T> {
    * @param fn Transformer function that returns iterable object
    * @returns A stream which parts will be computed using transformer function from the every element of underlying stream
    */
-  flatMap<T1>(fn: (a: T) => Iterable<T1> | Iterator<T1>): SyncStreamOps<T1> {
-    return new SyncStreamOps(new SyncFlatMapStream(this, fn));
+  flatMap<T1>(
+    this: this extends SyncStream<SyncItera<T1>> ? this : never
+  ): SyncStreamOps<T1>;
+  flatMap<T1>(fn: (a: T) => SyncItera<T1>): SyncStreamOps<T1>;
+  flatMap<T1>(fn?: (a: T) => SyncItera<T1>): SyncStreamOps<T1> {
+    return new SyncStreamOps(
+      new SyncFlatMapStream(this, (fn ?? ((x) => x)) as (a: T) => SyncItera<T1>)
+    );
   }
 
   /**
@@ -373,8 +380,17 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
    * @param fn Transformer function that returns iterable object
    * @returns A stream which parts will be computed using transformer function from the every element of underlying stream
    */
-  flatMap<T1>(fn: (a: T) => Promising<AnyItera<T1>>): AsyncStreamOps<T1> {
-    return new AsyncStreamOps(new AsyncFlatMapStream(this, fn));
+  flatMap<T1>(
+    this: this extends AsyncStream<AnyItera<T1>> ? this : never
+  ): AsyncStreamOps<T1>;
+  flatMap<T1>(fn: (a: T) => Promising<AnyItera<T1>>): AsyncStreamOps<T1>;
+  flatMap<T1>(fn?: (a: T) => Promising<AnyItera<T1>>): AsyncStreamOps<T1> {
+    return new AsyncStreamOps(
+      new AsyncFlatMapStream(
+        this,
+        (fn ?? ((x) => x)) as (a: T) => Promising<AnyItera<T1>>
+      )
+    );
   }
 
   /**

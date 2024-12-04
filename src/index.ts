@@ -7,7 +7,7 @@ import {
 import { GatherIterableStream } from "./combinators/gather";
 import { SyncIterateStream, AsyncIterateStream } from "./combinators/iterate";
 import { AsyncStreamOps, SyncStreamOps } from "./ops";
-import { AnyItera, AnyOps, AnyStream, Promising, StreamItem } from "./types";
+import { AnyItera, AnyOps, AnyStream, AsyncItera, Promising, StreamItem, SyncItera } from "./types";
 import { cancelStream, intoIter } from "./utils";
 
 export {
@@ -32,7 +32,7 @@ export class Stream {
    * @param it Iterable on the basis of which a stream will be built
    * @returns A stream that yields iterable items synchronously
    */
-  static sync<T>(it: Iterable<T> | Iterator<T>): SyncStreamOps<T> {
+  static sync<T>(it: SyncItera<T>): SyncStreamOps<T> {
     return new SyncStreamOps(
       new SyncIterableStream(Symbol.iterator in it ? it[Symbol.iterator]() : it)
     );
@@ -42,7 +42,7 @@ export class Stream {
    * @param it Simular to Stream.sync, async iterable on the basis of which a stream will be built
    * @returns A stream that yields iterable items asynchronously
    */
-  static async<T>(it: AsyncIterable<T> | AsyncIterator<T>): AsyncStreamOps<T> {
+  static async<T>(it: AsyncItera<T>): AsyncStreamOps<T> {
     return new AsyncStreamOps(
       new AsyncIterableStream(
         Symbol.asyncIterator in it ? it[Symbol.asyncIterator]() : it

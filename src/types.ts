@@ -29,11 +29,11 @@ export type AnyStream<T> = SyncStream<T> | AsyncStream<T>;
 
 export type AnyOps<T> = SyncStreamOps<T> | AsyncStreamOps<T>;
 
-export type AnyItera<T> =
-  | Iterable<T>
-  | Iterator<T>
-  | AsyncIterable<T>
-  | AsyncIterator<T>;
+export type SyncItera<T> = Iterable<T> | Iterator<T>;
+
+export type AsyncItera<T> = AsyncIterable<T> | AsyncIterator<T>;
+
+export type AnyItera<T> = SyncItera<T> | AsyncItera<T>;
 
 export type WindowStreamKind = "take" | "skip";
 
