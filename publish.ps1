@@ -1,6 +1,9 @@
-param([String]$Message)
+param(
+  [String] $Message,
+  [String] $Version = "patch"
+)
 git stash
-npm version patch
+npm version $Version
 git stash pop
 git add .
 git commit -m $Message

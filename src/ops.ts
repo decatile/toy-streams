@@ -76,7 +76,7 @@ export class SyncStreamOps<T> extends SyncStream<T> {
   /**
    * @param fn Function that perform actions to every element of stream
    */
-  forEach(fn: (a: T) => void): void {
+  each(fn: (a: T) => void): void {
     while (1) {
       const item = this.nextItem();
       if ("done" in item) return;
@@ -415,7 +415,7 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
    * @param fn Function that perform actions to every element of stream
    * @returns A promise that will be resolved when all elements of stream will be exhausted
    */
-  async forEach(fn: (a: T) => Promising<void>): Promise<void> {
+  async each(fn: (a: T) => Promising<void>): Promise<void> {
     while (1) {
       const item = await this.nextItem();
       if ("done" in item) return;
