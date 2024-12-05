@@ -45,14 +45,8 @@ export class SyncStreamOps<T> extends SyncStream<T> {
    * @param fn Transformer function that returns iterable object
    * @returns A stream which parts will be computed using transformer function from the every element of underlying stream
    */
-  flatMap<T1>(
-    this: this extends SyncStream<SyncItera<T1>> ? this : never
-  ): SyncStreamOps<T1>;
-  flatMap<T1>(fn: (a: T) => SyncItera<T1>): SyncStreamOps<T1>;
-  flatMap<T1>(fn?: (a: T) => SyncItera<T1>): SyncStreamOps<T1> {
-    return new SyncStreamOps(
-      new SyncFlatMapStream(this, (fn ?? ((x) => x)) as (a: T) => SyncItera<T1>)
-    );
+  flatMap<T1>(fn: (a: T) => SyncItera<T1>): SyncStreamOps<T1> {
+    return new SyncStreamOps(new SyncFlatMapStream(this, fn));
   }
 
   /**
