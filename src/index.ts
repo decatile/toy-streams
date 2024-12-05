@@ -7,7 +7,15 @@ import {
 import { GatherIterableStream } from "./combinators/gather";
 import { SyncIterateStream, AsyncIterateStream } from "./combinators/iterate";
 import { AsyncStreamOps, SyncStreamOps } from "./ops";
-import { AnyItera, AnyOps, AnyStream, AsyncItera, Promising, StreamItem, SyncItera } from "./types";
+import {
+  AnyItera,
+  AnyOps,
+  AnyStream,
+  AsyncItera,
+  Promising,
+  StreamItem,
+  SyncItera,
+} from "./types";
 import { cancelStream, intoIter } from "./utils";
 
 export {
@@ -21,11 +29,11 @@ export {
 
 export class Stream {
   /**
-   * @param error An error that will be returned after requesting the item
-   * @returns A stream that always fails. Similar to throwing an exception when processing the first element
+   * @param errors Errors that will be returned after requesting items
+   * @returns A stream that yields errors passed to _.fail(). Similar to throwing an exception when processing elements
    */
-  static fail<T>(error: unknown): SyncStreamOps<T> {
-    return new SyncStreamOps(new SyncFailStream(error));
+  static fail<T>(...errors: unknown[]): SyncStreamOps<T> {
+    return new SyncStreamOps(new SyncFailStream(errors));
   }
 
   /**

@@ -3,17 +3,16 @@ import { StreamItem } from "../types";
 import { Items } from "../utils";
 
 export class SyncFailStream<T> extends SyncStream<T> {
-  #error;
-  #done = false;
+  #errors;
 
-  constructor(error: unknown) {
+  constructor(...errors: unknown[]) {
     super();
-    this.#error = error;
+    this.#errors = errors[Symbol.iterator]();
   }
 
   nextItem(): StreamItem<T> {
-    if (this.#done) return Items.done;
-    this.#done = true;
-    return Items.error(this.#error);
+    const item = this.#errors.next();
+    if (item.done) return Items.done;
+    return Items.error(item.value);
   }
 }
