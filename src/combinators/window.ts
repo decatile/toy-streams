@@ -17,14 +17,14 @@ export class SyncWindowStream<T> extends SyncStream<T> {
   #take() {
     if (!this.#value) return Items.done;
     const item = this.#stream.nextItem();
-    if ("value" in item) this.#value--;
+    if (!("done" in item)) this.#value--;
     return item;
   }
 
   #skip() {
     while (this.#value) {
       const item = this.#stream.nextItem();
-      if (!("value" in item)) return item;
+      if ("done" in item) return item;
       this.#value--;
     }
     return this.#stream.nextItem();
@@ -50,14 +50,14 @@ export class AsyncWindowStream<T> extends AsyncStream<T> {
   async #take() {
     if (!this.#value) return Items.done;
     const item = await this.#stream.nextItem();
-    if ("value" in item) this.#value--;
+    if (!("done" in item)) this.#value--;
     return item;
   }
 
   async #skip() {
     while (this.#value) {
       const item = await this.#stream.nextItem();
-      if (!("value" in item)) return item;
+      if ("done" in item) return item;
       this.#value--;
     }
     return this.#stream.nextItem();

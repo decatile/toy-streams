@@ -32,8 +32,10 @@ export class Stream {
    * @param errors Errors that will be returned after requesting items
    * @returns A stream that yields errors passed to _.fail(). Similar to throwing an exception when processing elements
    */
-  static fail<T>(...errors: unknown[]): SyncStreamOps<T> {
-    return new SyncStreamOps(new SyncFailStream(errors));
+  static fail<T>(it: SyncItera<unknown>): SyncStreamOps<T> {
+    return new SyncStreamOps(
+      new SyncFailStream<T>(Symbol.iterator in it ? it[Symbol.iterator]() : it)
+    );
   }
 
   /**
