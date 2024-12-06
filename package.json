@@ -13,7 +13,7 @@
     }
   },
   "scripts": {
-    "build": "eslint src && rimraf dist && tsc && tsc-alias",
+    "build": "eslint src && node rm.mjs && tsc && tsc-alias",
     "prepare": "npm run build"
   },
   "repository": {
