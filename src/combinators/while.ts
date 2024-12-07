@@ -1,6 +1,6 @@
 import { AsyncStream, SyncStream } from "../base";
 import { Promising, StreamItem, WhileStreamKind } from "../types";
-import { Items, STREAM_CANCEL_SIGNAL } from "../utils";
+import { Item, STREAM_CANCEL_SIGNAL } from "../utils";
 
 export class SyncWhileStream<T> extends SyncStream<T> {
   #predicate;
@@ -32,8 +32,8 @@ export class SyncWhileStream<T> extends SyncStream<T> {
           if (!("value" in item)) return item;
         } while (this.#predicate(item.value));
       } catch (e) {
-        if (e === STREAM_CANCEL_SIGNAL) return Items.done;
-        return Items.error(e);
+        if (e === STREAM_CANCEL_SIGNAL) return Item.done;
+        return Item.error(e);
       }
       this.#done = true;
       return item;
@@ -48,10 +48,9 @@ export class SyncWhileStream<T> extends SyncStream<T> {
     try {
       if ("value" in item && this.#predicate(item.value)) return item;
     } catch (e) {
-      if (e === STREAM_CANCEL_SIGNAL) return Items.done;
-      return Items.error(e);
+      return Item.wrapError(e)
     }
-    return Items.done;
+    return Item.done;
   }
 }
 
@@ -85,8 +84,8 @@ export class AsyncWhileStream<T> extends AsyncStream<T> {
           if (!("value" in item)) return item;
         } while (await this.#predicate(item.value));
       } catch (e) {
-        if (e === STREAM_CANCEL_SIGNAL) return Items.done;
-        return Items.error(e);
+        if (e === STREAM_CANCEL_SIGNAL) return Item.done;
+        return Item.error(e);
       }
       this.#done = true;
       return item;
@@ -101,9 +100,8 @@ export class AsyncWhileStream<T> extends AsyncStream<T> {
     try {
       if ("value" in item && (await this.#predicate(item.value))) return item;
     } catch (e) {
-      if (e === STREAM_CANCEL_SIGNAL) return Items.done;
-      return Items.error(e);
+      return Item.wrapError(e)
     }
-    return Items.done;
+    return Item.done;
   }
 }

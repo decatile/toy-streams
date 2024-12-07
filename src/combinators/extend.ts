@@ -1,6 +1,6 @@
 import { SyncStream, AsyncStream } from "../base";
 import { StreamItem } from "../types";
-import { Items } from "../utils";
+import { Item } from "../utils";
 
 export class SyncExtendStream<T> extends SyncStream<T> {
   #streams: SyncStream<T>[];
@@ -14,7 +14,7 @@ export class SyncExtendStream<T> extends SyncStream<T> {
   nextItem(): StreamItem<T> {
     while (1) {
       const current = this.#streams[this.#index];
-      if (!current) return Items.done;
+      if (current === undefined) return Item.done;
       const item = current.nextItem();
       if (!("done" in item)) return item;
       this.#index++;
@@ -35,7 +35,7 @@ export class AsyncExtendStream<T> extends AsyncStream<T> {
   async nextItem(): Promise<StreamItem<T>> {
     while (1) {
       const current = this.#streams[this.#index];
-      if (!current) return Items.done;
+      if (current === undefined) return Item.done;
       const item = await current.nextItem();
       if (!("done" in item)) return item;
       this.#index++;

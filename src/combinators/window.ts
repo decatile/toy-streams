@@ -1,6 +1,6 @@
 import { AsyncStream, SyncStream } from "../base";
 import { StreamItem, WindowStreamKind } from "../types";
-import { Items } from "../utils";
+import { Item } from "../utils";
 
 export class SyncWindowStream<T> extends SyncStream<T> {
   #stream;
@@ -15,7 +15,7 @@ export class SyncWindowStream<T> extends SyncStream<T> {
   }
 
   #take() {
-    if (!this.#value) return Items.done;
+    if (!this.#value) return Item.done;
     const item = this.#stream.nextItem();
     if (!("done" in item)) this.#value--;
     return item;
@@ -48,7 +48,7 @@ export class AsyncWindowStream<T> extends AsyncStream<T> {
   }
 
   async #take() {
-    if (!this.#value) return Items.done;
+    if (!this.#value) return Item.done;
     const item = await this.#stream.nextItem();
     if (!("done" in item)) this.#value--;
     return item;

@@ -1,5 +1,5 @@
 import { StreamItem } from "./types";
-import { Items } from "./utils";
+import { Item } from "./utils";
 
 export abstract class SyncStream<T> implements Iterable<T>, Iterator<T> {
   get sync() {
@@ -11,7 +11,7 @@ export abstract class SyncStream<T> implements Iterable<T>, Iterator<T> {
   }
 
   next(): IteratorResult<T> {
-    return Items.into(this.nextItem());
+    return Item.into(this.nextItem());
   }
 
   abstract nextItem(): StreamItem<T>;
@@ -29,7 +29,7 @@ export abstract class AsyncStream<T>
   }
 
   async next(): Promise<IteratorResult<T>> {
-    return Items.into(await this.nextItem());
+    return Item.into(await this.nextItem());
   }
 
   abstract nextItem(): Promise<StreamItem<T>>;

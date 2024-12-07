@@ -1,6 +1,6 @@
 import { SyncStream, AsyncStream } from "../base";
 import { StreamItem, JoinStreamKind, JoinStreamReturnType } from "../types";
-import { Items } from "../utils";
+import { Item } from "../utils";
 
 export class SyncJoinStream<A, B, K extends JoinStreamKind> extends SyncStream<
   JoinStreamReturnType<A, B, K>
@@ -35,7 +35,7 @@ export class SyncJoinStream<A, B, K extends JoinStreamKind> extends SyncStream<
     if (!("value" in i1)) return i1;
     const i2 = this.#bs.nextItem();
     if (!("value" in i2)) return i2;
-    return Items.item([i1.value, i2.value] as [A, B]);
+    return Item.value([i1.value, i2.value] as [A, B]);
   }
 
   #left() {
@@ -43,13 +43,13 @@ export class SyncJoinStream<A, B, K extends JoinStreamKind> extends SyncStream<
     if (!("value" in i1)) return i1;
     let i2: StreamItem<B>;
     if (this.#bexhausted) {
-      i2 = Items.done;
+      i2 = Item.done;
     } else {
       i2 = this.#bs.nextItem();
       if ("done" in i2) this.#bexhausted = true;
       if ("error" in i2) return i2;
     }
-    return Items.item([i1.value, "value" in i2 ? i2.value : null] as [
+    return Item.value([i1.value, "value" in i2 ? i2.value : null] as [
       A,
       B | null
     ]);
@@ -58,7 +58,7 @@ export class SyncJoinStream<A, B, K extends JoinStreamKind> extends SyncStream<
   #right() {
     let i1;
     if (this.#aexhausted) {
-      i1 = Items.done;
+      i1 = Item.done;
     } else {
       i1 = this.#as.nextItem();
       if ("done" in i1) this.#aexhausted = true;
@@ -66,7 +66,7 @@ export class SyncJoinStream<A, B, K extends JoinStreamKind> extends SyncStream<
     }
     const i2 = this.#bs.nextItem();
     if (!("value" in i2)) return i2;
-    return Items.item(["value" in i1 ? i1.value : null, i2.value] as [
+    return Item.value(["value" in i1 ? i1.value : null, i2.value] as [
       A | null,
       B
     ]);
@@ -75,7 +75,7 @@ export class SyncJoinStream<A, B, K extends JoinStreamKind> extends SyncStream<
   #full() {
     let i1;
     if (this.#aexhausted) {
-      i1 = Items.done;
+      i1 = Item.done;
     } else {
       i1 = this.#as.nextItem();
       if ("done" in i1) this.#aexhausted = true;
@@ -83,14 +83,14 @@ export class SyncJoinStream<A, B, K extends JoinStreamKind> extends SyncStream<
     }
     let i2: StreamItem<B>;
     if (this.#bexhausted) {
-      i2 = Items.done;
+      i2 = Item.done;
     } else {
       i2 = this.#bs.nextItem();
       if ("done" in i2) this.#bexhausted = true;
       if ("error" in i2) return i2;
     }
-    if (this.#aexhausted && this.#bexhausted) return Items.done;
-    return Items.item([
+    if (this.#aexhausted && this.#bexhausted) return Item.done;
+    return Item.value([
       "value" in i1 ? i1.value : null,
       "value" in i2 ? i2.value : null,
     ] as [A, B] | [A, null] | [null, B]);
@@ -129,7 +129,7 @@ export class AsyncJoinStream<
 
   async #leftAwaiter() {
     if (this.#aexhausted) {
-      return Items.done;
+      return Item.done;
     } else {
       const r = await this.#as.nextItem();
       if ("done" in r) this.#aexhausted = true;
@@ -139,7 +139,7 @@ export class AsyncJoinStream<
 
   async #rightAwaiter() {
     if (this.#bexhausted) {
-      return Items.done;
+      return Item.done;
     } else {
       const r = await this.#bs.nextItem();
       if ("done" in r) this.#bexhausted = true;
@@ -154,7 +154,7 @@ export class AsyncJoinStream<
     ]);
     if (!("value" in i1)) return i1;
     if (!("value" in i2)) return i2;
-    return Items.item([i1.value, i2.value] as [A, B]);
+    return Item.value([i1.value, i2.value] as [A, B]);
   }
 
   async #left() {
@@ -164,7 +164,7 @@ export class AsyncJoinStream<
     ]);
     if (!("value" in i1)) return i1;
     if ("error" in i2) return i2;
-    return Items.item([i1.value, "value" in i2 ? i2.value : null] as [
+    return Item.value([i1.value, "value" in i2 ? i2.value : null] as [
       A,
       B | null
     ]);
@@ -177,7 +177,7 @@ export class AsyncJoinStream<
     ]);
     if ("error" in i1) return i1;
     if (!("value" in i2)) return i2;
-    return Items.item(["value" in i1 ? i1.value : null, i2.value] as [
+    return Item.value(["value" in i1 ? i1.value : null, i2.value] as [
       A | null,
       B
     ]);
@@ -191,11 +191,11 @@ export class AsyncJoinStream<
     if ("error" in i1) return i1;
     if ("error" in i2) return i2;
     if ("value" in i1 || "value" in i2) {
-      return Items.item([
+      return Item.value([
         "value" in i1 ? i1.value : null,
         "value" in i2 ? i2.value : null,
       ] as [A, B] | [A, null] | [null, B]);
     }
-    return Items.done;
+    return Item.done;
   }
 }

@@ -10,12 +10,17 @@ export function cancelStream(): never {
   throw STREAM_CANCEL_SIGNAL;
 }
 
-export const Items = Object.freeze({
+export const Item = Object.freeze({
   done: { done: true as const },
-  item: <T>(value: T) => ({ value }),
+  value: <T>(value: T) => ({ value }),
   error: (error: unknown) => ({ error }),
+  wrapError: (error: unknown) =>
+    error === STREAM_CANCEL_SIGNAL ? Item.done : Item.error(error),
+  left: (error: unknown) => ({ value: { left: error } }),
+  right: <T>(value: T) => ({ value: { right: value } }),
+
   from: <T>(item: IteratorResult<T>) =>
-    item.done ? Items.done : Items.item(item.value),
+    item.done ?? false ? Item.done : Item.value(item.value),
   into: <T>(item: StreamItem<T>) => {
     if ("value" in item) {
       return { done: false as const, ...item };

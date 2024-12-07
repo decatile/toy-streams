@@ -318,13 +318,13 @@ export class SyncStreamOps<T> extends SyncStream<T> {
       const result = [] as T[];
       while (1) {
         const item = this.next();
-        if (item.done) break;
+        if (item.done ?? false) break;
         result.push(item.value);
       }
       return result as CollectReturnType<T, E, M>;
     }
-    const that = options.errors ? this.attempt() : this;
-    if (options.meanTime) {
+    const that = options.errors ?? false ? this.attempt() : this;
+    if (options.meanTime ?? false) {
       const [result, elapsed, total] = that.measure().fold(
         ([result, elapsed, total], [element, currentElapsed]) => {
           result.push(element as CollectReturnTypeWithErrorsIf<T, E>);
@@ -696,13 +696,13 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
       const result = [] as T[];
       while (1) {
         const item = await this.next();
-        if (item.done) break;
+        if (item.done ?? false) break;
         result.push(item.value);
       }
       return result as CollectReturnType<T, E, M>;
     }
-    const that = options.errors ? this.attempt() : this;
-    if (options.meanTime) {
+    const that = options.errors ?? false ? this.attempt() : this;
+    if (options.meanTime ?? false) {
       const [result, elapsed, total] = await that.measure().fold(
         ([result, elapsed, total], [element, currentElapsed]) => {
           result.push(element as CollectReturnTypeWithErrorsIf<T, E>);

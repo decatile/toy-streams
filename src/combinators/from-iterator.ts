@@ -1,6 +1,6 @@
 import { AsyncStream, SyncStream } from "../base";
 import { StreamItem } from "../types";
-import { Items } from "../utils";
+import { Item } from "../utils";
 
 export class SyncIterableStream<T> extends SyncStream<T> {
   #it;
@@ -12,9 +12,9 @@ export class SyncIterableStream<T> extends SyncStream<T> {
 
   nextItem(): StreamItem<T> {
     try {
-      return Items.from(this.#it.next());
+      return Item.from(this.#it.next());
     } catch (e) {
-      return Items.error(e);
+      return Item.error(e);
     }
   }
 }
@@ -29,9 +29,9 @@ export class AsyncIterableStream<T> extends AsyncStream<T> {
 
   async nextItem(): Promise<StreamItem<T>> {
     try {
-      return Items.from(await this.#it.next());
+      return Item.from(await this.#it.next());
     } catch (e) {
-      return Items.error(e);
+      return Item.error(e);
     }
   }
 }

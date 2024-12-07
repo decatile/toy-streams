@@ -1,6 +1,6 @@
 import { AsyncStream, SyncStream } from "../base";
 import { Either, StreamItem } from "../types";
-import { Items } from "../utils";
+import { Item } from "../utils";
 
 export class SyncAttemptStream<T> extends SyncStream<Either<unknown, T>> {
   #stream;
@@ -13,8 +13,8 @@ export class SyncAttemptStream<T> extends SyncStream<Either<unknown, T>> {
   nextItem(): StreamItem<Either<unknown, T>> {
     const item = this.#stream.nextItem();
     if ("done" in item) return item;
-    if ("error" in item) return Items.item({ left: item.error });
-    return Items.item({ right: item.value });
+    if ("error" in item) return Item.left(item.error);
+    return Item.right(item.value);
   }
 }
 
@@ -29,7 +29,7 @@ export class AsyncAttemptStream<T> extends AsyncStream<Either<unknown, T>> {
   async nextItem(): Promise<StreamItem<Either<unknown, T>>> {
     const item = await this.#stream.nextItem();
     if ("done" in item) return item;
-    if ("error" in item) return Items.item({ left: item.error });
-    return Items.item({ right: item.value });
+    if ("error" in item) return Item.left(item.error);
+    return Item.right(item.value);
   }
 }

@@ -1,6 +1,6 @@
 import { SyncStream, AsyncStream } from "../base";
 import { StreamItem } from "../types";
-import { Items } from "../utils";
+import { Item } from "../utils";
 
 export class SyncMeasureStream<T> extends SyncStream<[T, number]> {
   #stream;
@@ -14,7 +14,7 @@ export class SyncMeasureStream<T> extends SyncStream<[T, number]> {
     const from = performance.now();
     const item = this.#stream.nextItem();
     if (!("value" in item)) return item;
-    return Items.item([item.value, performance.now() - from]);
+    return Item.value([item.value, performance.now() - from]);
   }
 }
 
@@ -30,6 +30,6 @@ export class AsyncMeasureStream<T> extends AsyncStream<[T, number]> {
     const from = performance.now();
     const item = await this.#stream.nextItem();
     if (!("value" in item)) return item;
-    return Items.item([item.value, performance.now() - from]);
+    return Item.value([item.value, performance.now() - from]);
   }
 }

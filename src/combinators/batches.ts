@@ -1,6 +1,6 @@
 import { SyncStream, AsyncStream } from "../base";
 import { StreamItem } from "../types";
-import { Items } from "../utils";
+import { Item } from "../utils";
 
 export class SyncBatchesStream<T> extends SyncStream<T[]> {
   #storage: T[] = [];
@@ -21,17 +21,17 @@ export class SyncBatchesStream<T> extends SyncStream<T[]> {
   }
 
   nextItem(): StreamItem<T[]> {
-    if (this.#done) return Items.done;
+    if (this.#done) return Item.done;
     while (this.#storage.length < this.#count) {
       const item = this.#stream.nextItem();
       if ("done" in item) {
         this.#done = true;
-        return Items.item(this.#swap());
+        return Item.value(this.#swap());
       }
       if ("error" in item) return item;
       this.#storage.push(item.value);
     }
-    return Items.item(this.#swap());
+    return Item.value(this.#swap());
   }
 }
 
@@ -54,16 +54,16 @@ export class AsyncBatchesStream<T> extends AsyncStream<T[]> {
   }
 
   async nextItem(): Promise<StreamItem<T[]>> {
-    if (this.#done) return Items.done;
+    if (this.#done) return Item.done;
     while (this.#storage.length < this.#count) {
       const item = await this.#stream.nextItem();
       if ("done" in item) {
         this.#done = true;
-        return Items.item(this.#swap());
+        return Item.value(this.#swap());
       }
       if ("error" in item) return item;
       this.#storage.push(item.value);
     }
-    return Items.item(this.#swap());
+    return Item.value(this.#swap());
   }
 }

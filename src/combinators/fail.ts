@@ -1,6 +1,6 @@
 import { SyncStream } from "../base";
 import { StreamItem } from "../types";
-import { Items } from "../utils";
+import { Item } from "../utils";
 
 export class SyncFailStream<T> extends SyncStream<T> {
   #it;
@@ -13,10 +13,10 @@ export class SyncFailStream<T> extends SyncStream<T> {
   nextItem(): StreamItem<T> {
     try {
       const item = this.#it.next();
-      if (item.done) return Items.done;
-      return Items.error(item.value);
+      if (item.done??false) return Item.done;
+      return Item.error(item.value);
     } catch (e) {
-      return Items.error(e);
+      return Item.error(e);
     }
   }
 }

@@ -20,6 +20,7 @@ export default [
     rules: {
       "no-constant-condition": "off",
       "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/strict-boolean-expressions": "error"
     },
   },
 ];

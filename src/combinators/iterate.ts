@@ -1,6 +1,6 @@
 import { SyncStream, AsyncStream } from "../base";
 import { Promising, StreamItem } from "../types";
-import { Items, STREAM_CANCEL_SIGNAL } from "../utils";
+import { Item } from "../utils";
 
 export class SyncIterateStream<T, A> extends SyncStream<T> {
   #fn;
@@ -16,10 +16,9 @@ export class SyncIterateStream<T, A> extends SyncStream<T> {
     try {
       const [result, newInit] = this.#fn(this.#init);
       this.#init = newInit;
-      return Items.item(result);
+      return Item.value(result);
     } catch (e) {
-      if (e === STREAM_CANCEL_SIGNAL) return Items.done;
-      return Items.error(e);
+      return Item.wrapError(e)
     }
   }
 }
@@ -38,10 +37,9 @@ export class AsyncIterateStream<T, A> extends AsyncStream<T> {
     try {
       const [result, newInit] = await this.#fn(this.#init);
       this.#init = newInit;
-      return Items.item(result);
+      return Item.value(result);
     } catch (e) {
-      if (e === STREAM_CANCEL_SIGNAL) return Items.done;
-      return Items.error(e);
+      return Item.wrapError(e)
     }
   }
 }
