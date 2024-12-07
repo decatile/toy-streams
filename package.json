@@ -1,6 +1,6 @@
 {
   "name": "toy-streams",
-  "version": "1.8.6",
+  "version": "1.8.7",
   "description": "Zero-dependency streams",
   "files": [
     "dist"
