@@ -1,6 +1,6 @@
 import { AsyncStream, SyncStream } from "../base";
 import { Promising, StreamItem, WhileStreamKind } from "../types";
-import { Item, STREAM_CANCEL_SIGNAL } from "../utils";
+import { Item } from "../utils";
 
 export class SyncWhileStream<T> extends SyncStream<T> {
   #predicate;
@@ -32,8 +32,7 @@ export class SyncWhileStream<T> extends SyncStream<T> {
           if (!("value" in item)) return item;
         } while (this.#predicate(item.value));
       } catch (e) {
-        if (e === STREAM_CANCEL_SIGNAL) return Item.done;
-        return Item.error(e);
+        return Item.wrapError(e);
       }
       this.#done = true;
       return item;
@@ -84,8 +83,7 @@ export class AsyncWhileStream<T> extends AsyncStream<T> {
           if (!("value" in item)) return item;
         } while (await this.#predicate(item.value));
       } catch (e) {
-        if (e === STREAM_CANCEL_SIGNAL) return Item.done;
-        return Item.error(e);
+        return Item.wrapError(e);
       }
       this.#done = true;
       return item;

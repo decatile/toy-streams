@@ -1,6 +1,6 @@
 import type { AnyItera, StreamItem } from "./types";
 
-export const STREAM_CANCEL_SIGNAL = Symbol("toy-streams.stream-cancel");
+const STREAM_CANCEL_SIGNAL = Symbol("toy-streams.stream-cancel");
 
 /**
  * Call this function in stream callback to end stream. Note: it throws a specific exception,
@@ -14,11 +14,9 @@ export const Item = Object.freeze({
   done: { done: true as const },
   value: <T>(value: T) => ({ value }),
   error: (error: unknown) => ({ error }),
-  wrapError: (error: unknown) =>
-    error === STREAM_CANCEL_SIGNAL ? Item.done : Item.error(error),
+  wrapError: (error: unknown) => error === STREAM_CANCEL_SIGNAL ? Item.done : Item.error(error),
   left: (error: unknown) => ({ value: { left: error } }),
   right: <T>(value: T) => ({ value: { right: value } }),
-
   from: <T>(item: IteratorResult<T>) =>
     item.done ?? false ? Item.done : Item.value(item.value),
   into: <T>(item: StreamItem<T>) => {
