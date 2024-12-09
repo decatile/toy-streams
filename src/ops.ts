@@ -252,7 +252,7 @@ export class SyncStreamOps<T> extends SyncStream<T> {
    * @returns Maximum of all elements in numeric stream
    */
   max(this: this extends SyncStreamOps<number> ? this : never): number {
-    return this.reduce(Math.min);
+    return this.reduce(Math.max);
   }
 
   /**
@@ -619,7 +619,7 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
   max(
     this: this extends AsyncStreamOps<number> ? this : never
   ): Promise<number> {
-    return this.reduce(Math.min);
+    return this.reduce(Math.max);
   }
 
   /**

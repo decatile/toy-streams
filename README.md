@@ -1,57 +1,52 @@
-# toy-streams
+toy-streams is a library for managing streams. Inspired by Java's Stream API.
 
-**toy-streams** is a small library for managing synchronous and asynchronous data streams.  
+A stream is an abstraction over a collection of lazily evaluated values. It is essentially an abstraction over an iterator or generator (or their asynchronous versions). By default, streams are fail-fast, but you can push errors out to the user space with `Stream.attempt()`.
 
-At its core, it is an add-on over synchronous and asynchronous iterators with error management and a bunch of combinators for any case.  
+You can start by installing with npm
 
-The key concept of the library is `Stream` — a sequence of lazily calculated values. Depending on how the values are calculated, the `Stream` can be either synchronous or asynchronous. Moreover, each `Stream` itself is an iterator of synchronous or asynchronous type.  
-
-I recommend using **TypeScript** for type correctness, as it's easy to make mistakes when working with functionality of this type.  
-
-## Installation
-
-First, install the library and import a static object to wrap various values in the stream:
-
-```bash
+```
 npm i toy-streams
 ```
 
-## Usage
-
-Import the library and create a synchronous or asynchronous stream:
-
-```js
-import Stream from 'toy-streams';
-
-// Synchronous stream based on the iterator
-const syncStream: SyncStreamOps<number> = Stream.sync([1, 2, 3]);
-
-// Asynchronous stream based on an iterator, but when pulling values, the promise resolves first
-const asyncStream: AsyncStreamOps<number> = Stream.gather([Promise.resolve(1)]);
+Then, import the static object with factory methods
+```ts
+import Stream from "you-streams";
 ```
 
-### Example: Delayed Join Operation
+This object allows you to create a stream from any object that has a `[Symbol.iterator]`, `[Symbol.asyncIterator]`, or `next` method that satisfies the iterator contract.
 
-Lift stream into async context to use promise-based combinators. Before each pull, it waits for a timeout (100ms), performs a (`fullJoin(stream<A>, stream<B>) -> stream<[A, B]>`) operation with the condition that until both streams exhaust themselves, the values will continue to arrive. If one of the streams has ended, `null` will be returned in place of its result. Iterate through the entire stream and apply a callback to each element.
+```ts
+const array = [1]
 
-```js
-syncStream
-  .async()
-  .delayed(100)
-  .fullJoin(asyncStream)
-  .forEach(console.log);
+function* syncGenerator() {
+yield 1;
+}
+
+async function* asyncGenerator() {
+yield 1;
+}
+
+// From array
+
+const a = Stream.sync(array)
+
+// From generator
+const b = Stream.sync(syncGenerator())
+
+// From async generator
+const c = Stream.async(asyncGenerator())
+
+// From accumulator and function (acc) => [yieldVal, newAcc]
+const d = Stream.iterate(x => [x * 2, x], x)
+
+// Returns errors passed as argument
+const e = Stream.fail([new Error()])
 ```
 
-## Features
+For more information, refer to the documentation and autocomplete. I would also like to note that some methods are only available in an asynchronous stream. To make an asynchronous stream, call `_.async()`.
 
-- Synchronous and asynchronous stream support
-- Error handling and robust combinators
-- Fully typed and documented for easy integration
+Project Github: https://github.com/decatile/toy-stream
 
-## Contributing
+If you want to implement new functionality or fix the current one, open an issue without a shadow of a doubt.
 
-If you want to contribute to the project, you are welcome to my [GitHub](https://github.com/decatile/toy-streams).
-
----
-
-Happy streaming! 🚀
+A toy remains a toy - everything else is at your own risk.
