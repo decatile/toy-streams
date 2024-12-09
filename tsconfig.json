@@ -1,13 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ES2018", // Set the target ECMAScript version (e.g., ES5, ES6, etc.)
+    "target": "ESNext", // Set the target ECMAScript version (e.g., ES5, ES6, etc.)[]
     "declaration": true, // Generate .d.ts files
     "strict": true, // Enable strict type-checking options
     "esModuleInterop": true, // Ensure compatibility with CommonJS modules
     "skipLibCheck": true, // Skip type checking of declaration files
     "declarationDir": "./dist", // Specify where to output the declaration files
-    "lib": ["ES2018", "DOM"],
-    "module": "ES6",
+    "lib": ["ESNext", "DOM"],
+    "module": "ESNext",
     "outDir": "./dist"
   },
   "include": [
