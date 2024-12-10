@@ -5,15 +5,15 @@ import { Item } from "../utils";
 const STREAM_DONE_SIGNAL = Symbol("toy-streams.stream-done");
 
 export class AsyncInterruptStream<T> extends AsyncStream<T> {
-  #stream;
   #ctl = new AbortController();
-  #item = null as StreamItem<T> | null;
+  #done = false;
+  #stream;
   #promise = new Promise<StreamItem<T>>((resolve) => {
     const handler = () => {
+      this.#done = true;
       this.#ctl.signal.removeEventListener("abort", handler);
       const r = this.#ctl.signal.reason;
-      this.#item = r === STREAM_DONE_SIGNAL ? Item.done : Item.error(r);
-      resolve(this.#item);
+      resolve(r === STREAM_DONE_SIGNAL ? Item.done : Item.error(r));
     };
     this.#ctl.signal.addEventListener("abort", handler);
   });
@@ -23,15 +23,8 @@ export class AsyncInterruptStream<T> extends AsyncStream<T> {
     this.#stream = stream;
   }
 
-  async nextItem(): Promise<StreamItem<T>> {
-    if (this.#item !== null) {
-      if ("done" in this.#item) return this.#item;
-      if ("error" in this.#item) {
-        const item = this.#item;
-        this.#item = Item.done;
-        return item;
-      }
-    }
+  nextItem(): Promise<StreamItem<T>> {
+    if (this.#done) return Promise.resolve(Item.done);
     return Promise.race([this.#stream.nextItem(), this.#promise]);
   }
 
