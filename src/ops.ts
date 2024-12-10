@@ -6,6 +6,7 @@ import { SyncExtendStream, AsyncExtendStream } from "./combinators/extend";
 import { SyncFilterStream, AsyncFilterStream } from "./combinators/filter";
 import { SyncFlatMapStream, AsyncFlatMapStream } from "./combinators/flatmap";
 import { AsyncFlattenStream, SyncFlattenStream } from "./combinators/flatten";
+import { AsyncInterruptStream } from "./combinators/interrupt";
 import { SyncJoinStream, AsyncJoinStream } from "./combinators/join";
 import { SyncMapStream, AsyncMapStream } from "./combinators/map";
 import { AsyncMeasureStream, SyncMeasureStream } from "./combinators/measure";
@@ -670,6 +671,11 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
    */
   attempt(): AsyncStreamOps<Either<unknown, T>> {
     return new AsyncStreamOps(new AsyncAttemptStream(this));
+  }
+
+  withInterrupt(): [AsyncStreamOps<T>, (err?: unknown) => void] {
+    const that = new AsyncInterruptStream(this);
+    return [new AsyncStreamOps(that), that.interrupt.bind(that)];
   }
 
   /**
