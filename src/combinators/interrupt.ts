@@ -29,6 +29,6 @@ export class AsyncInterruptStream<T> extends AsyncStream<T> {
   }
 
   interrupt(error?: unknown) {
-    this.#ctl.abort(error === undefined ? STREAM_DONE_SIGNAL : error);
+    this.#ctl.abort(error == undefined ? STREAM_DONE_SIGNAL : error);
   }
 }
