@@ -673,6 +673,11 @@ export class AsyncStreamOps<T> extends AsyncStream<T> {
     return new AsyncStreamOps(new AsyncAttemptStream(this));
   }
 
+  /**
+   * @returns A stream that can be interrupted and
+   * callback. If callback called without arguments, stream will
+   * yield "done". Otherwise, stream will yield error once and then yield "done"
+   */
   withInterrupt(): [AsyncStreamOps<T>, (err?: unknown) => void] {
     const that = new AsyncInterruptStream(this);
     return [new AsyncStreamOps(that), that.interrupt.bind(that)];
