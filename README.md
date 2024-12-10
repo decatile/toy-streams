@@ -45,7 +45,7 @@ const e = Stream.fail([new Error()])
 
 For more information, refer to the documentation and autocomplete. I would also like to note that some methods are only available in an asynchronous stream. To make an asynchronous stream, call `_.async()`.
 
-Project Github: https://github.com/decatile/toy-stream
+Project Github: https://github.com/decatile/toy-streams
 
 If you want to implement new functionality or fix the current one, open an issue without a shadow of a doubt.
 
